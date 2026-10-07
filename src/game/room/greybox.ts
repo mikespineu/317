@@ -138,6 +138,11 @@ export function buildGreybox(): Group {
   box(room, 'Pickup_Battery', [0.03, 0.06, 0.1], [1.91, 1.01, 2.01], '#3f6f5f')
   box(room, 'Pickup_Battery_Desk', [0.1, 0.06, 0.03], [0.45, 0.81, -1.91], '#3f6f5f')
 
+  // Loose props the definition names: four books and the candle, on the desk.
+  for (let i = 0; i < 4; i++)
+    box(room, `Book_${i + 1}`, [0.15, 0.04, 0.22], [-0.5 + i * 0.2, 0.8, -2.0], '#4d3a4f')
+  box(room, 'Prop_Candle', [0.06, 0.2, 0.06], [-0.6, 0.88, -2.3], '#d8cdb4')
+
   // Wisp: origin at the centre of the head.
   add(room, 'Wisp', new LatheGeometry(wispProfile(), 160), [-0.5, 1.5, 0.3], '#bff5e0')
 

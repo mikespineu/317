@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react'
-import { useFrame } from '@react-three/fiber'
+import { useFrame, useThree } from '@react-three/fiber'
 import {
   CanvasTexture,
   Mesh,
@@ -11,13 +11,20 @@ import {
   Vector3,
 } from 'three/webgpu'
 import { max, mix, reflector, smoothstep, uniform, uv, vec3 } from 'three/tsl'
+import { debugState } from '../debug/debugState'
 import { quality } from '../renderer/quality'
+import { useRoomDef } from '../room/RoomContext'
 import { useRoom } from '../room/RoomScene'
 import type { BoundRoom } from '../room/bindNodes'
+import { useGame } from '../store'
 import { tuning } from '../tuning'
+import { createMirrorClue } from './mirrorClue'
+import type { MirrorClue } from './mirrorClue'
+import { dressMirrorText, MIRROR_ONLY_LAYER } from './mirrorText'
+import type { MirrorText } from './mirrorText'
 
-// The reflection test: a word painted backwards on the wall facing the mirror.
-const WORD = 'AWAKE'
+// The reflection test: a word painted backwards on the wall facing the
+// mirror, when the definition has one (mirror.testWord).
 const WORD_Y = 2.34 // above the painting, still in the mirror's view from mid-room
 const WORD_WIDTH = 0.62
 const WORD_HEIGHT = 0.2
@@ -27,7 +34,9 @@ const Z_AXIS = new Vector3(0, 0, 1)
 
 interface MirrorParts {
   tint: { value: number }
-  word: MeshStandardNodeMaterial
+  word: MeshStandardNodeMaterial | null
+  texts: MirrorText[]
+  clue: MirrorClue | null
 }
 
 // Centre and facing of the mirror plane in the mesh's local space. The
@@ -53,7 +62,7 @@ function mirrorPlane(mesh: Mesh) {
   return { centre, normal, worldCentre, worldNormal }
 }
 
-function wordTexture() {
+function wordTexture(word: string) {
   const canvas = document.createElement('canvas')
   canvas.width = 512
   canvas.height = 160
@@ -65,7 +74,7 @@ function wordTexture() {
   ctx.textAlign = 'center'
   ctx.textBaseline = 'middle'
   ctx.fillStyle = '#d8cfb6'
-  ctx.fillText(WORD, canvas.width / 2, canvas.height / 2 + 6, canvas.width - 24)
+  ctx.fillText(word, canvas.width / 2, canvas.height / 2 + 6, canvas.width - 24)
   // Faded paint: knock small flecks out of the letters.
   ctx.globalCompositeOperation = 'destination-out'
   for (let i = 0; i < 900; i++) {
@@ -80,7 +89,7 @@ function wordTexture() {
   return texture
 }
 
-function buildWord(room: BoundRoom, worldCentre: Vector3, worldNormal: Vector3) {
+function buildWord(room: BoundRoom, text: string, worldCentre: Vector3, worldNormal: Vector3) {
   // Find the facing wall along the mirror's normal, at the word's height.
   const from = worldCentre.clone().addScaledVector(worldNormal, 0.1)
   from.y = WORD_Y
@@ -88,7 +97,7 @@ function buildWord(room: BoundRoom, worldCentre: Vector3, worldNormal: Vector3) 
   const dist = hit ? hit.distance : WORD_FALLBACK_DIST
   const position = from.clone().addScaledVector(worldNormal, dist - 0.006)
 
-  const map = wordTexture()
+  const map = wordTexture(text)
   const material = new MeshStandardNodeMaterial({
     map,
     emissiveMap: map,
@@ -105,9 +114,14 @@ function buildWord(room: BoundRoom, worldCentre: Vector3, worldNormal: Vector3) 
   return { mesh, material, map }
 }
 
-// Swaps Mirror_Surface's material for a planar reflection of the room.
+// Swaps Mirror_Surface's material for a planar reflection of the room, and
+// dresses the room's MirrorOnly_ meshes so that only the reflection shows them.
 export function Mirror() {
   const room = useRoom()
+  const def = useRoomDef().mirror
+  const testWord = def?.testWord
+  const clueDef = def?.clue
+  const mainCamera = useThree((s) => s.camera)
   const parts = useRef<MirrorParts | null>(null)
 
   useEffect(() => {
@@ -131,8 +145,23 @@ export function Mirror() {
     base.updateBefore = (frame) => {
       const every = Math.max(1, Math.round(tuning.mirrorUpdateEvery))
       if (tick++ % every !== 0 && base.hasOutput) return undefined
+      // Mirror-only content: the reflector keeps one virtual camera per view
+      // camera (a clone, made on first use and never given new layers), so it
+      // can carry a layer the view camera lacks. No visibility toggling, and a
+      // skipped refresh above just keeps the last reflection, text included.
+      if (frame.camera) base.getVirtualCamera(frame.camera).layers.enable(MIRROR_ONLY_LAYER)
       return update(frame)
     }
+
+    // On their own layer the main view never draws them; castShadow = false
+    // keeps them out of the flashlight's shadow pass, whose camera borrows the
+    // layers of whichever camera is rendering.
+    const texts = room.mirrorOnly.map(dressMirrorText)
+    const clueText = clueDef && room.mirrorOnly.find((m) => m.name === clueDef.node)
+    const clue =
+      clueDef && clueText
+        ? createMirrorClue(mesh, { worldCentre, worldNormal }, clueText, clueDef.gives, room.occluders)
+        : null
 
     const tint = uniform(tuning.mirrorTint)
     const cool = vec3(tint, mix(tint, 1, 0.5), 1)
@@ -151,9 +180,9 @@ export function Mirror() {
     mesh.castShadow = false
     mesh.receiveShadow = false
 
-    const word = buildWord(room, worldCentre, worldNormal)
-    room.scene.add(word.mesh)
-    parts.current = { tint, word: word.material }
+    const word = testWord ? buildWord(room, testWord, worldCentre, worldNormal) : null
+    if (word) room.scene.add(word.mesh)
+    parts.current = { tint, word: word?.material ?? null, texts, clue }
 
     return () => {
       parts.current = null
@@ -161,19 +190,33 @@ export function Mirror() {
       mesh.remove(reflection.target)
       reflection.dispose()
       material.dispose()
-      word.mesh.removeFromParent()
-      word.mesh.geometry.dispose()
-      word.material.dispose()
-      word.map.dispose()
+      for (const text of texts) text.dispose()
+      mainCamera.layers.disable(MIRROR_ONLY_LAYER)
+      if (word) {
+        word.mesh.removeFromParent()
+        word.mesh.geometry.dispose()
+        word.material.dispose()
+        word.map.dispose()
+      }
     }
-  }, [room])
+  }, [room, testWord, clueDef, mainCamera])
 
-  useFrame(() => {
+  useFrame(({ camera }, delta) => {
     const p = parts.current
     if (!p) return
     p.tint.value = tuning.mirrorTint
-    p.word.emissiveIntensity = tuning.mirrorWordGlow
-    p.word.opacity = tuning.mirrorWordOpacity
+    for (const text of p.texts) text.update()
+    // Debug: also draw the mirror-only meshes in the main view, to place them.
+    if (p.texts.length > 0) {
+      if (debugState.mirrorOnlyInMainView) camera.layers.enable(MIRROR_ONLY_LAYER)
+      else camera.layers.disable(MIRROR_ONLY_LAYER)
+    }
+    const store = useGame.getState()
+    if (p.clue && !store.paused && store.uiLock === null) p.clue.step(Math.min(delta, 0.1), camera)
+    if (p.word) {
+      p.word.emissiveIntensity = tuning.mirrorWordGlow
+      p.word.opacity = tuning.mirrorWordOpacity
+    }
   })
 
   return null

@@ -1,0 +1,121 @@
+/* A note held up to read: a sheet of paper on the dimmed room, set at a slight
+   angle like something pulled from a drawer. Flat, with the shared paper panel
+   and a vermilion offset shadow. Sized in em off the viewport height so it
+   fits a phone in landscape. */
+.note-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 30;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: 1.2em;
+  padding: max(0.75rem, env(safe-area-inset-top)) max(0.75rem, env(safe-area-inset-right))
+    max(0.75rem, env(safe-area-inset-bottom)) max(0.75rem, env(safe-area-inset-left));
+  font-size: clamp(12px, 3.6vh, 19px);
+  font-family: var(--font-display);
+  background: rgba(13, 12, 31, 0.9);
+  pointer-events: auto;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  animation: note-in 0.22s steps(4) both;
+}
+
+.note {
+  display: grid;
+  gap: 0.75em;
+  width: min(26em, 86vw);
+  padding: 1.7em 2em 1.4em;
+  rotate: -1.2deg;
+  box-shadow: 0.4em 0.4em 0 var(--color-vermilion);
+  animation: note-unfold 0.3s steps(4) both;
+}
+
+.note-title {
+  margin: 0 0 0.4em;
+  padding-bottom: 0.6em;
+  border-bottom: var(--line) solid var(--color-ink);
+  font-size: 0.8em;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.note-line {
+  margin: 0;
+  font-size: 1.2em;
+  font-style: italic;
+  line-height: 1.45;
+  text-wrap: pretty;
+}
+
+.note-close {
+  justify-self: end;
+  min-height: 2.6em;
+  margin-top: 0.7em;
+  padding: 0 1.1em;
+  border: 0.14em solid var(--color-ink);
+  font: inherit;
+  font-size: 0.8em;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--color-paper);
+  background: var(--color-ink);
+  box-shadow: 0.14em 0.14em 0 rgba(13, 12, 31, 0.55);
+  cursor: pointer;
+}
+
+.note-close:hover {
+  color: var(--color-ink);
+  background: var(--color-paper);
+}
+
+.note-close:active {
+  translate: 0.1em 0.1em;
+  box-shadow: none;
+}
+
+.note-close:focus-visible {
+  outline: 3px solid var(--color-vermilion);
+  outline-offset: 2px;
+}
+
+.note-hint {
+  margin: 0;
+  font-size: 13px;
+  font-style: italic;
+  color: rgba(239, 228, 198, 0.7);
+}
+
+.note-hint kbd {
+  display: inline-block;
+  min-width: 1.6em;
+  padding: 0.05em 0.4em;
+  border: var(--line) solid var(--color-paper-shade);
+  font: 700 12px/1.4 var(--font-display);
+  font-style: normal;
+  text-align: center;
+  color: var(--color-paper);
+  background: var(--color-ink);
+}
+
+@keyframes note-in {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes note-unfold {
+  from {
+    transform: scaleY(0.2);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .note-overlay,
+  .note {
+    animation-duration: 0.01s;
+  }
+}

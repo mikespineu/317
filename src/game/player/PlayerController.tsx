@@ -1,6 +1,6 @@
 import { useFrame, useThree } from '@react-three/fiber'
 import { useLayoutEffect, useRef } from 'react'
-import { level0 } from '../room/level0.def'
+import { useRoomDef } from '../room/RoomContext'
 import { useRoom } from '../room/RoomScene'
 import { runtime } from '../runtime'
 import { useGame } from '../store'
@@ -12,20 +12,22 @@ import { moveCircle } from './collision'
 // lookDY looks down.
 export function PlayerController() {
   const room = useRoom()
+  const def = useRoomDef()
   const camera = useThree((s) => s.camera)
   const feet = useRef({ x: 0, z: 0 })
 
   useLayoutEffect(() => {
-    const spawn = room.spawns.get(level0.spawn)
+    const spawn = room.spawns.get(def.spawn)
     feet.current.x = spawn?.x ?? 0
     feet.current.z = spawn?.z ?? 0
     const { input, player } = runtime
     input.lookDX = input.lookDY = 0
-    player.yaw = player.pitch = 0
+    player.yaw = ((def.spawnYawDeg ?? 0) * Math.PI) / 180
+    player.pitch = 0
     player.position.set(feet.current.x, tuning.eyeHeight, feet.current.z)
     camera.position.copy(player.position)
-    camera.rotation.set(0, 0, 0, 'YXZ')
-  }, [room, camera])
+    camera.rotation.set(0, player.yaw, 0, 'YXZ')
+  }, [room, def, camera])
 
   useFrame((_, delta) => {
     const { input, player } = runtime
@@ -37,12 +39,18 @@ export function PlayerController() {
     const lookDY = input.lookDY
     input.lookDX = input.lookDY = 0
 
-    if (!paused && uiLock === null) {
-      const dt = Math.min(delta, tuning.maxFrameDt)
+    // The intro's lock holds the feet, not the head: look deltas an input
+    // module still gathers there are applied. Intro itself nudges yaw and
+    // pitch (the ease toward the clock, the slam's shake) through
+    // runtime.player. Every other lock freezes the view as before.
+    if (!paused && (uiLock === null || uiLock === 'intro')) {
       const limit = (tuning.pitchLimitDeg * Math.PI) / 180
       player.yaw -= lookDX
       player.pitch = Math.min(limit, Math.max(-limit, player.pitch - lookDY))
+    }
 
+    if (!paused && uiLock === null) {
+      const dt = Math.min(delta, tuning.maxFrameDt)
       let mx = input.moveX
       let my = input.moveY
       const len = Math.hypot(mx, my)

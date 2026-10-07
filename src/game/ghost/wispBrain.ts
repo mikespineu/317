@@ -1,5 +1,6 @@
 import { Raycaster, Vector3 } from 'three/webgpu'
 import type { Mesh } from 'three/webgpu'
+import type { GhostDef } from '../room/roomDef'
 import type { WispState } from '../runtime'
 import type { LightMode } from '../store'
 import { tuning } from '../tuning'
@@ -30,6 +31,7 @@ export interface WispBrain {
   path: number // position along the wander path
   clock: number // seconds simulated
   phase: number[] // per-Wisp offsets so two Wisps would not move alike
+  zone: GhostDef['zone'] | null // wander box from the definition; null = the room
 }
 
 export interface BrainContext {
@@ -68,7 +70,13 @@ export function blocked(from: Vector3, to: Vector3, occluders: Mesh[]): boolean 
   return _raycaster.intersectObjects(occluders, false).length > 0
 }
 
-export function createBrain(spawn: Vector3): WispBrain {
+// `seed` shifts the noise so Wisps sharing a room do not drift in step; 0
+// leaves the path as it always was.
+export function createBrain(
+  spawn: Vector3,
+  zone: GhostDef['zone'] | null = null,
+  seed = 0,
+): WispBrain {
   return {
     state: 'wander',
     position: spawn.clone(),
@@ -82,7 +90,10 @@ export function createBrain(spawn: Vector3): WispBrain {
     fleeDir: new Vector3(1, 0, 0),
     path: 0,
     clock: 0,
-    phase: [0.3, 2.1, 4.4, 1.2, 5.6, 3.3, 0.9, 2.7, 4.9],
+    phase: [0.3, 2.1, 4.4, 1.2, 5.6, 3.3, 0.9, 2.7, 4.9].map(
+      (p, i) => p + seed * (1.7 + i * 0.61),
+    ),
+    zone,
   }
 }
 
@@ -102,12 +113,38 @@ function noise(t: number, p: number[], i: number) {
   )
 }
 
-function clampInside(v: Vector3) {
-  const halfX = tuning.wispRoomHalfX - tuning.wispMargin
-  const halfZ = tuning.wispRoomHalfZ - tuning.wispMargin
-  v.x = Math.min(halfX, Math.max(-halfX, v.x))
-  v.z = Math.min(halfZ, Math.max(-halfZ, v.z))
-  v.y = Math.min(tuning.wispMaxY, Math.max(tuning.wispMinY, v.y))
+// The box the Wisp keeps to, as a centre and half-sizes: its zone shrunk by
+// the margin, or the room when the definition gives none. Read every step so
+// the tuning stays live. A zone smaller than the margin collapses to a point.
+const _box = { cx: 0, cy: 0, cz: 0, hx: 0, hy: 0, hz: 0 }
+
+function innerBox(brain: WispBrain) {
+  const zone = brain.zone
+  if (!zone) {
+    _box.cx = _box.cz = 0
+    _box.hx = tuning.wispRoomHalfX - tuning.wispMargin
+    _box.hz = tuning.wispRoomHalfZ - tuning.wispMargin
+    _box.cy = (tuning.wispMinY + tuning.wispMaxY) / 2
+    _box.hy = (tuning.wispMaxY - tuning.wispMinY) / 2
+    return _box
+  }
+  const { min, max } = zone
+  const m = tuning.ghostZoneMargin
+  _box.cx = (min[0] + max[0]) / 2
+  _box.cy = (min[1] + max[1]) / 2
+  _box.cz = (min[2] + max[2]) / 2
+  _box.hx = Math.max(0, Math.abs(max[0] - min[0]) / 2 - m)
+  _box.hy = Math.max(0, Math.abs(max[1] - min[1]) / 2 - m)
+  _box.hz = Math.max(0, Math.abs(max[2] - min[2]) / 2 - m)
+  return _box
+}
+
+// Keeps `v` in the box. An axis that started outside (`from`) may come back
+// in but is not snapped there, so a Wisp caught outside its zone does not jump.
+function clampInside(v: Vector3, from: Vector3, box: typeof _box) {
+  v.x = Math.min(Math.max(box.cx + box.hx, from.x), Math.max(Math.min(box.cx - box.hx, from.x), v.x))
+  v.y = Math.min(Math.max(box.cy + box.hy, from.y), Math.max(Math.min(box.cy - box.hy, from.y), v.y))
+  v.z = Math.min(Math.max(box.cz + box.hz, from.z), Math.max(Math.min(box.cz - box.hz, from.z), v.z))
   return v
 }
 
@@ -127,16 +164,15 @@ export function stepBrain(brain: WispBrain, dt: number, ctx: BrainContext) {
       // The path is a point drifting around the inner box; the Wisp trails it
       // at a capped speed so it also glides back calmly after fleeing.
       brain.path += dt * tuning.wispWanderSpeed
-      const halfX = tuning.wispRoomHalfX - tuning.wispMargin
-      const halfZ = tuning.wispRoomHalfZ - tuning.wispMargin
-      const midY = (tuning.wispMinY + tuning.wispMaxY) / 2
-      const halfY = (tuning.wispMaxY - tuning.wispMinY) / 2
+      const box = innerBox(brain)
+      // In a low zone the bob gives way first, so the path never leaves the box.
+      const bob = Math.min(tuning.wispBob, box.hy)
       _target.set(
-        noise(brain.path, brain.phase, 0) * halfX,
-        midY +
-          noise(brain.path * 0.7, brain.phase, 3) * (halfY - tuning.wispBob) +
-          Math.sin(brain.clock * 1.7) * tuning.wispBob,
-        noise(brain.path * 0.9, brain.phase, 6) * halfZ,
+        box.cx + noise(brain.path, brain.phase, 0) * box.hx,
+        box.cy +
+          noise(brain.path * 0.7, brain.phase, 3) * (box.hy - bob) +
+          Math.sin(brain.clock * 1.7) * bob,
+        box.cz + noise(brain.path * 0.9, brain.phase, 6) * box.hz,
       )
       _to.subVectors(_target, brain.position)
       const dist = _to.length()
@@ -176,7 +212,7 @@ export function stepBrain(brain: WispBrain, dt: number, ctx: BrainContext) {
       const push = Math.min(1, (total - brain.timer) / tuning.wispFleePush)
       const ease = Math.min(1, (brain.timer / total) * 2) * push * push * (3 - 2 * push)
       brain.position.addScaledVector(brain.fleeDir, tuning.wispFleeSpeed * ease * dt)
-      clampInside(brain.position)
+      clampInside(brain.position, _prev, innerBox(brain))
       brain.timer -= dt
       if (brain.timer <= 0) {
         brain.state = 'wander'

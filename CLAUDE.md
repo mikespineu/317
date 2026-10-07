@@ -10,7 +10,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - `docs/level-0-blender-asset-spec.md` — the Level 0 room: sizes, object names, export rules.
 - `docs/level-0-implementation.md` — the Level 0 coding plan: build steps with acceptance checks, room definition, store shape, tuning values.
 
-The current target is **Level 0**, a single prototype study. Login, Supabase, saving, the journal, leaderboards and the data-driven room loader are explicitly out of scope until Level 0 is done.
+Two rooms exist: **Level 0**, the prototype study (`/play`, the default), and **Level 1**, the Entrance Hall (`/play?room=entrance-hall`), specified in `docs/level-1-implementation.md` and `docs/level-1-blender-asset-spec.md`. Login, Supabase, saving, the journal, leaderboards and the JSON room loader are still out of scope.
 
 ## Commands
 
@@ -48,11 +48,11 @@ Blender (asset pipeline, needs Blender installed locally):
 
 **Game state: one zustand store** (`src/game/store.ts`). React components subscribe with selectors; input handlers and `useFrame` loops read and write through `useGame.getState()` to avoid re-renders.
 
-**Rooms are meant to become data.** The design calls for a shared engine that loads a room's `.glb` plus a JSON definition binding behaviour to named nodes. Level 0 logic is hand-written, but should keep the shape of that definition (interactables, ghosts, exit, `requires` / `gives`) so it can move to data later. `src/game/Level0.tsx` mounts one component per system; `RoomScene` loads the exported `.glb` (or a greybox with `?greybox`) and binds nodes by name from `src/game/room/level0.def.ts`. The definition also lists `props` (`throwable: true` makes a prop grabbable and throwable), pickups with a `model` that the loader places (the floor flashlight), and interactables named by the definition rather than an `Interact_` prefix (the candle).
+**Rooms are meant to become data.** The design calls for a shared engine that loads a room's `.glb` plus a JSON definition binding behaviour to named nodes. Level 0 logic is hand-written, but should keep the shape of that definition (interactables, ghosts, exit, `requires` / `gives`) so it can move to data later. The engine is room-agnostic: `src/game/Room.tsx` mounts one component per system for any definition; `RoomScene` loads the exported `.glb` (or a greybox with `?greybox`, Level 0 only), binds nodes by name and merges static scenery per material (`mergeStatic.ts`, bypass with `?nomerge`). Definitions are typed by `src/game/room/roomDef.ts` and registered in `rooms.ts`, the only module allowed to import `level0.def.ts` / `level1.def.ts`; everything else reads the mounted room through `currentRoom()` or `useRoomDef()`. A node that code looks up by name must be named in the definition, or the merge removes it. The definition also lists `props` (`throwable: true` makes a prop grabbable and throwable), pickups with a `model` that the loader places (the floor flashlight), and interactables named by the definition rather than an `Interact_` prefix (the candle).
 
 **Blender to game contract.** The game finds objects by name, so names, origins and sizes in the `.blend` are an interface:
 
-- Prefixes: `Interact_` (usable), `Pickup_` (collectable), `Collider_` (invisible collision), `Spawn_` (position empties), plus `Mirror_Surface`. Everything else is static scenery, unless the room definition names it (books, candle). Props must be exported axis-aligned: the physics sizes them from the bounding box.
+- Prefixes: `Interact_` (usable), `Pickup_` (collectable), `Collider_` (invisible collision), `Spawn_` (position empties), `MirrorOnly_` (drawn only in the mirror's reflection), plus `Mirror_Surface`. Everything else is static scenery, unless the room definition names it (books, candle). Props must be exported axis-aligned: the physics sizes them from the bounding box.
 - 1 unit = 1 m; the floor centre is the world origin; the room is 4 × 5 m with a 2.8 m ceiling; player eye height is about 1.6 m.
 - Blender is Z-up with +Y forward; the exporter converts to three.js Y-up.
 - `blender/export/` holds one `.glb` for the room and one per held item (`flashlight.glb`, `camera.glb`). Cameras and lights are not exported; the game does its own lighting. Compression belongs in the build step, not in Blender.

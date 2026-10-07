@@ -4,6 +4,7 @@ import {
   installDesktopInput,
   setPortrait,
 } from '../player/desktopInput'
+import { useRoomDef } from '../room/RoomContext'
 import { useGame } from '../store'
 import './rotate-prompt.css'
 
@@ -31,6 +32,8 @@ export function RotatePrompt() {
   const modal = useGame((s) => s.uiLock !== null)
   const [portrait, setPortraitState] = useState(false)
   const [started, setStarted] = useState(false)
+  // A room without the UV lamp does not list its key.
+  const uv = useRoomDef().lights?.uv !== false
 
   useEffect(() => {
     const game = root.current?.parentElement
@@ -84,7 +87,7 @@ export function RotatePrompt() {
               </ul>
             )}
             <dl className="shell-controls">
-              {CONTROLS.map(([keys, action]) => (
+              {CONTROLS.filter(([keys]) => uv || keys !== 'Q').map(([keys, action]) => (
                 <div key={keys}>
                   <dt>{keys}</dt>
                   <dd>{action}</dd>

@@ -1,0 +1,93 @@
+/* The chest's symbol lock: a brass plate with three wheels. The overlay, the
+   wheels and the buttons are the padlock's (padlock.css); only the plate and
+   the icons on the strips are drawn here. Flat, ink outlines, no glow. */
+.symbol-lock {
+  display: grid;
+  justify-items: center;
+  filter: drop-shadow(0.4em 0.4em 0 var(--color-vermilion));
+}
+
+.symbol-lock-plate {
+  position: relative;
+  display: grid;
+  gap: 1em;
+  padding: 1.4em 1.9em 1.2em;
+  border: 0.18em solid var(--color-ink);
+  border-radius: 0.3em;
+  background: var(--color-saffron);
+}
+
+/* Four rivets, printed with the ink block. */
+.symbol-lock-plate::before {
+  content: '';
+  position: absolute;
+  inset: 0.45em;
+  background:
+    radial-gradient(circle, var(--color-ink) 0 0.2em, transparent 0.22em) top left / 0.6em 0.6em
+      no-repeat,
+    radial-gradient(circle, var(--color-ink) 0 0.2em, transparent 0.22em) top right / 0.6em 0.6em
+      no-repeat,
+    radial-gradient(circle, var(--color-ink) 0 0.2em, transparent 0.22em) bottom left / 0.6em 0.6em
+      no-repeat,
+    radial-gradient(circle, var(--color-ink) 0 0.2em, transparent 0.22em) bottom right / 0.6em
+      0.6em no-repeat;
+  pointer-events: none;
+}
+
+/* Hatching down the shaded side, as on the padlock. */
+.symbol-lock-plate::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 18%;
+  background: repeating-linear-gradient(
+    135deg,
+    transparent 0 0.28em,
+    rgba(13, 12, 31, 0.32) 0.28em 0.4em
+  );
+  pointer-events: none;
+}
+
+.symbol-strip svg {
+  width: 2.3em;
+  height: 2.3em;
+  color: var(--color-ink);
+  opacity: 0.25;
+  transform: scaleY(0.72);
+}
+
+.symbol-strip svg.is-current {
+  width: 3.5em;
+  height: 3.5em;
+  opacity: 1;
+  transform: none;
+}
+
+/* Solved: the wheels stamp red for a beat before the lock drops. */
+.symbol-lock.is-open .wheel-window {
+  box-shadow:
+    0 0 0 0.14em var(--color-vermilion),
+    0 0 0 0.28em var(--color-ink);
+}
+
+.symbol-lock.is-open .symbol-strip svg.is-current {
+  color: var(--color-vermilion);
+}
+
+.symbol-lock.is-open {
+  animation: symbol-lock-open 0.3s steps(3) both;
+}
+
+@keyframes symbol-lock-open {
+  50% {
+    transform: translateY(0.35em);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .symbol-lock.is-open {
+    animation-duration: 0.01s;
+  }
+}

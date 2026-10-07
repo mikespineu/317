@@ -1,6 +1,7 @@
 import { MathUtils } from 'three/webgpu'
 import { sfx } from '../audio/sfx'
-import { level0 } from '../room/level0.def'
+import { respawnPickup } from '../interaction/actions'
+import { currentRoom } from '../room/rooms'
 import { runtime } from '../runtime'
 import { levelOf, useGame } from '../store'
 import type { LightMode } from '../store'
@@ -33,8 +34,6 @@ let emergencyGiven = false
 let dipLeft = 0
 let tickIn = 0
 let humOn = false
-
-const batteryPickup = level0.pickups.find((p) => p.item === 'battery')?.node
 
 // Cheap smooth noise in 0..1 from a few detuned sines.
 function noise(t: number) {
@@ -88,12 +87,13 @@ export function updateBattery(dt: number, frozen: boolean): BeamState {
     const stutter = fade < 1 ? 0.35 + 0.65 * noise(clock * tuning.flickerRate * 2.2) : 1
     strength = MathUtils.lerp(tuning.lowStrength * stutter, tuning.emptyGlow, fade)
 
-    // Level 0 stand-in for the GDD's emergency pack: the pickup comes back.
+    // The GDD's emergency pack: the definition's pickup comes back, at its spawn.
     if (spares === 0 && !swapping) {
       dryFor += step
       if (!emergencyGiven && dryFor >= tuning.emergencyPackSeconds) {
         emergencyGiven = true
-        if (batteryPickup && store.pickedUp[batteryPickup]) store.setPickedUp(batteryPickup, false)
+        const pack = currentRoom().emergencyPack
+        if (pack && store.pickedUp[pack.pickup]) respawnPickup(pack.pickup, pack.spawn)
       }
     } else {
       dryFor = 0

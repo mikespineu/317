@@ -1,6 +1,8 @@
 import { useFrame, useThree } from '@react-three/fiber'
 import { useEffect, useMemo, useRef } from 'react'
 import * as THREE from 'three/webgpu'
+import { useRoomDef } from '../room/RoomContext'
+import type { RoomDef } from '../room/roomDef'
 import { runtime } from '../runtime'
 import { useGame } from '../store'
 import { quality } from '../renderer/quality'
@@ -22,7 +24,30 @@ function overlayMaterial<T extends THREE.NodeMaterial>(material: T) {
   return material
 }
 
-function buildOverlays() {
+// The ghosts' wander boxes never move, so their edges are written once.
+function buildZones(def: RoomDef) {
+  const positions: number[] = []
+  for (const { zone } of def.ghosts) {
+    if (!zone) continue
+    for (const corner of EDGES)
+      positions.push(
+        (corner & 1 ? zone.max : zone.min)[0],
+        (corner & 2 ? zone.max : zone.min)[1],
+        (corner & 4 ? zone.max : zone.min)[2],
+      )
+  }
+  const geometry = new THREE.BufferGeometry()
+  geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3))
+  const zones = new THREE.LineSegments(
+    geometry,
+    overlayMaterial(new THREE.LineBasicNodeMaterial({ color: '#a6e6cf' })),
+  )
+  zones.name = 'Debug_GhostZones'
+  zones.frustumCulled = false
+  return zones
+}
+
+function buildOverlays(def: RoomDef) {
   const boxGeometry = new THREE.BufferGeometry()
   const boxPositions = new THREE.Float32BufferAttribute(MAX_BOXES * EDGES.length * 3, 3)
   boxPositions.setUsage(THREE.DynamicDrawUsage)
@@ -46,23 +71,27 @@ function buildOverlays() {
   cone.name = 'Debug_Beam'
   cone.frustumCulled = false
 
-  for (const object of [boxes, cone]) {
+  const zones = buildZones(def)
+
+  for (const object of [boxes, cone, zones]) {
     object.visible = false
     object.castShadow = false
     object.receiveShadow = false
     object.renderOrder = 999
     object.raycast = () => {} // never a gameplay pick target
   }
-  return { boxes, boxPositions, cone }
+  return { boxes, boxPositions, cone, zones }
 }
 
 const target = new THREE.Vector3()
 
-// Dev overlays: collider boxes, the beam cone and a frame/draw-call readout.
+// Dev overlays: collider boxes, the beam cone, the ghosts' wander zones and a
+// frame/draw-call readout.
 // Only mounted with ?debug. The toggles live in debugState.
 export function DebugScene() {
   const gl = useThree((s) => s.gl) as unknown as THREE.WebGPURenderer
-  const o = useMemo(buildOverlays, [])
+  const def = useRoomDef()
+  const o = useMemo(() => buildOverlays(def), [def])
   const statsEl = useRef<HTMLDivElement | null>(null)
   const acc = useRef({ time: 0, frames: 0, worst: 0 })
 
@@ -78,6 +107,8 @@ export function DebugScene() {
       o.boxes.material.dispose()
       o.cone.geometry.dispose()
       o.cone.material.dispose()
+      o.zones.geometry.dispose()
+      o.zones.material.dispose()
     }
   }, [o])
 
@@ -99,6 +130,8 @@ export function DebugScene() {
       o.boxPositions.needsUpdate = true
       o.boxes.geometry.setDrawRange(0, count * EDGES.length)
     }
+
+    o.zones.visible = debugState.showGhostZones
 
     const beam = runtime.beam
     o.cone.visible = debugState.showBeam && beam.strength > 0
@@ -142,6 +175,7 @@ export function DebugScene() {
     <>
       <primitive object={o.boxes} />
       <primitive object={o.cone} />
+      <primitive object={o.zones} />
     </>
   )
 }

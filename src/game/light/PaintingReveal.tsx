@@ -11,7 +11,7 @@ import type { Mesh, Object3D } from 'three/webgpu'
 import { materialEmissive, mix, texture, uniform, uv, vec2, vec3 } from 'three/tsl'
 import { sfx } from '../audio/sfx'
 import { useRoom } from '../room/RoomScene'
-import { level0 } from '../room/level0.def'
+import { currentRoom } from '../room/rooms'
 import { useGame } from '../store'
 import { tuning } from '../tuning'
 import { uvMask, uvMaskAt } from './uvReveal'
@@ -31,8 +31,10 @@ const ROTATE_QUARTER_TURNS: 0 | 1 | 2 | 3 = 0
 const TEX_W = 512
 const TEX_H = 668 // same aspect as the 0.66 x 0.86 m canvas
 
-const reveal = level0.interactables.find((i) => i.type === 'uv-reveal')
-const code = level0.interactables.flatMap((i) => ('lock' in i ? [i.lock.code] : []))[0] ?? ''
+// The room's UV painting and the code it hides, if it has them.
+const interactables = currentRoom().interactables
+const reveal = interactables.find((i) => i.type === 'uv-reveal' && i.enabled !== false)
+const code = interactables.flatMap((i) => (i.lock?.type === 'code' ? [i.lock.code] : []))[0] ?? ''
 
 // Small seeded generator so the painting looks the same on every load.
 function rng(seed: number) {
@@ -284,7 +286,7 @@ export function PaintingReveal() {
   useFrame((_, delta) => {
     glowBoost.current.value = tuning.revealGlow
     const store = useGame.getState()
-    const clue = reveal?.gives[0].replace(/^clue:/, '')
+    const clue = reveal?.gives?.[0]?.replace(/^clue:/, '')
     if (!centre.current || !clue || store.clues.includes(clue)) return
     if (store.paused || store.uiLock !== null) return
 

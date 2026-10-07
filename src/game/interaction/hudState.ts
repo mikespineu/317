@@ -1,12 +1,12 @@
 import { create } from 'zustand'
 import { tuning } from '../tuning'
 
-// Small UI-only state shared by the actions, the HUD and the padlock. It is
+// Small UI-only state shared by the actions, the HUD and the lock overlays. It is
 // not game state, so it stays out of the main store.
 interface HudState {
   message: string | null
   messageId: number // bumps on every message so the HUD can restart its fade
-  lockNode: string | null // the interactable whose lock the padlock UI is editing
+  lockNode: string | null // the interactable whose lock the padlock or symbol lock UI is editing
 }
 
 export const useHud = create<HudState>(() => ({ message: null, messageId: 0, lockNode: null }))

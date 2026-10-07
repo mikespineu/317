@@ -1,0 +1,184 @@
+/* What the room-complete card adds to the .hud-complete card in hud.css:
+   stars, time, one photograph per ghost, secrets and the next room. */
+
+/* three ink stars, stamped one after another */
+.complete-stars {
+  display: flex;
+  gap: clamp(10px, 3vw, 22px);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.complete-stars li {
+  display: grid;
+  justify-items: center;
+  gap: 2px;
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  opacity: 0.45;
+  animation: complete-stamp 0.3s steps(3) both;
+}
+
+.complete-stars li:nth-child(1) {
+  animation-delay: 0.9s;
+}
+.complete-stars li:nth-child(2) {
+  animation-delay: 1.3s;
+}
+.complete-stars li:nth-child(3) {
+  animation-delay: 1.7s;
+}
+
+.complete-stars svg {
+  fill: none;
+  stroke: var(--color-ink);
+  stroke-width: 1.6;
+  stroke-linejoin: round;
+}
+
+.complete-stars li.is-earned {
+  opacity: 1;
+}
+
+.complete-stars li.is-earned svg {
+  fill: var(--color-ink);
+  filter: drop-shadow(2px 2px 0 var(--color-vermilion));
+}
+
+.complete-time {
+  margin: 0;
+  font-size: 12px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.complete-time strong {
+  margin-left: 0.4em;
+  font-size: 18px;
+  letter-spacing: 0.04em;
+  font-variant-numeric: tabular-nums;
+}
+
+/* one print per ghost, pinned side by side */
+.complete-photos {
+  display: flex;
+  justify-content: center;
+  align-items: start;
+  gap: clamp(10px, 3vw, 20px);
+  /* the prints share the card's width instead of pushing past its edge */
+  justify-self: stretch;
+  min-width: 0;
+}
+
+.complete-photos .hud-complete-photo {
+  flex: 0 1 11rem;
+  min-width: 0;
+}
+
+.complete-photos .hud-complete-photo img,
+.complete-blank {
+  width: 100%;
+  height: auto;
+  max-width: none;
+  max-height: clamp(56px, 18vh, 110px);
+  aspect-ratio: 16 / 10;
+  object-fit: cover;
+}
+
+/* the longer title stays on one line */
+.hud-complete-card:has(.complete-stars) h2 {
+  font-size: clamp(1.6rem, 7vh, 2.7rem);
+  white-space: nowrap;
+}
+
+.hud-complete-card:has(.complete-stars) {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.complete-photos .hud-complete-photo:nth-child(even) {
+  transform: rotate(1.5deg);
+}
+
+/* an empty frame for the one that got away */
+.complete-blank {
+  aspect-ratio: 16 / 9;
+  background: repeating-linear-gradient(
+    -45deg,
+    transparent 0 6px,
+    color-mix(in srgb, var(--color-ink) 22%, transparent) 6px 8px
+  );
+  border: 2px dashed var(--color-ink);
+}
+
+.hud-complete-photo.is-missing {
+  box-shadow: none;
+}
+
+.hud-complete-photo.is-missing figcaption {
+  opacity: 0.6;
+}
+
+.complete-more {
+  display: grid;
+  gap: 2px;
+  margin: 0;
+  font-size: 12px;
+  letter-spacing: 0.08em;
+}
+
+.complete-secrets {
+  opacity: 0.6;
+  text-wrap: balance;
+}
+
+@keyframes complete-stamp {
+  from {
+    opacity: 0;
+    scale: 1.6;
+  }
+}
+
+/* A phone in landscape is short: the full card (stars and two prints) only
+   fits with the flavour line and the star captions left out. */
+@media (max-height: 480px) {
+  .hud-complete-card:has(.complete-stars) {
+    gap: 5px;
+  }
+
+  .hud-complete-card:has(.complete-stars) h2 {
+    font-size: clamp(1.5rem, 8vh, 2.2rem);
+  }
+
+  .hud-complete-card:has(.complete-stars) .hud-complete-line,
+  .complete-stars span {
+    display: none;
+  }
+
+  .complete-stars svg {
+    width: 24px;
+    height: 24px;
+  }
+
+  .complete-photos .hud-complete-photo {
+    padding: 4px 4px 5px;
+    gap: 3px;
+  }
+
+  .complete-photos .hud-complete-photo img,
+  .complete-blank {
+    max-height: clamp(44px, 15vh, 70px);
+  }
+
+  .hud-complete-card:has(.complete-stars) .hud-complete-btn {
+    min-height: 40px;
+    margin-top: 2px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .complete-stars li {
+    animation: none;
+  }
+}

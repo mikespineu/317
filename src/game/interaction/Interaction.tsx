@@ -6,7 +6,7 @@ import { useRoom } from '../room/RoomScene'
 import { useGame } from '../store'
 import { tuning } from '../tuning'
 import { Highlight } from './Highlight'
-import { bindRoom, interactWith, syncPickups } from './actions'
+import { advanceSearch, bindRoom, clearSearch, interactWith, syncPickups } from './actions'
 import { advanceTweens, clearTweens } from './tweens'
 import { pick, useInteractionRay } from './useInteractionRay'
 
@@ -25,6 +25,7 @@ export function Interaction() {
     return () => {
       unsubscribe()
       clearTweens()
+      clearSearch()
       bindRoom(null)
     }
   }, [room])
@@ -46,7 +47,9 @@ export function Interaction() {
   useFrame((_, dt) => {
     const s = useGame.getState()
     if (s.paused || s.uiLock) return
-    advanceTweens(Math.min(dt, tuning.maxFrameDt))
+    const step = Math.min(dt, tuning.maxFrameDt)
+    advanceTweens(step)
+    advanceSearch(step)
   })
 
   return <Highlight />

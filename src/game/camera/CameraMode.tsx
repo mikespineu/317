@@ -5,9 +5,9 @@ import type { Object3D, PerspectiveCamera, Scene, WebGPURenderer } from 'three/w
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js'
 import { sfx } from '../audio/sfx'
 import { emit, on } from '../events'
+import { useRoomDef } from '../room/RoomContext'
 import { useRoom } from '../room/RoomScene'
-import { level0 } from '../room/level0.def'
-import { runtime } from '../runtime'
+import { liveGhosts, runtime } from '../runtime'
 import { useGame } from '../store'
 import { tuning } from '../tuning'
 import { flash } from './cameraFx'
@@ -15,7 +15,7 @@ import { capturePhoto } from './capturePhoto'
 import { scorePhoto } from './scorePhoto'
 import type { PhotoScore } from './scorePhoto'
 
-const MODEL_URL = '/models/level0/camera.glb'
+const MODEL_URL = '/models/shared/camera.glb'
 // Held pose in camera space: low in the view, as if lifted towards the eye.
 const HELD_X = 0
 const HELD_Z = -0.3
@@ -24,10 +24,8 @@ const HELD_Y_LOWERED = -0.42
 const HELD_TILT = -0.12 // radians, the back leans towards the eye
 const HELD_GLOW = 0.1 // emissive, so the model reads as a silhouette in the dark
 
-// Level 0 has one ghost; its id and base score come from the room definition.
-const ghost = level0.ghosts[0]
-
 const _ndc = new Vector3()
+const _v = new Vector3()
 
 function fallbackModel(): Object3D {
   const body = new Mesh(
@@ -76,6 +74,7 @@ export function CameraMode() {
   const baseFov = useRef(camera.fov)
   const lastShotAt = useRef(-Infinity)
   const busy = useRef(false) // from the shutter until the card is up
+  const def = useRoomDef()
   const pending = useRef<{ result: PhotoScore | null } | null>(null)
 
   // The held model, parented to the view camera.
@@ -131,11 +130,11 @@ export function CameraMode() {
         // Scored now, from the scene as the player saw it; the image is taken
         // from the next rendered frame, without the held model in it.
         pending.current = {
-          result: ghost ? scorePhoto(camera, ghost.baseScore, room.occluders) : null,
+          result: scorePhoto(camera, def.ghosts, room.occluders),
         }
         if (holder.current) holder.current.visible = false
       }),
-    [camera, room],
+    [camera, room, def],
   )
 
   useFrame((_, delta) => {
@@ -165,21 +164,21 @@ export function CameraMode() {
 
     // Touch aim assist: ease the view onto a Wisp that is already near the
     // centre. Look deltas are in screen terms (+X turns right, +Y looks down).
-    const wisp = runtime.wisp
-    if (
-      game.touch &&
-      game.cameraRaised &&
-      !game.paused &&
-      !game.uiLock &&
-      wisp.object &&
-      wisp.state !== 'gone' &&
-      wisp.state !== 'dissolve'
-    ) {
-      _ndc.copy(wisp.position).project(camera)
-      const inFront = _ndc.z > -1 && _ndc.z < 1
-      // Distance from the centre as a fraction of the screen width.
-      const offset = Math.hypot(_ndc.x / 2, _ndc.y / 2 / Math.max(0.01, camera.aspect))
-      if (inFront && offset < tuning.aimAssistRadius) {
+    if (game.touch && game.cameraRaised && !game.paused && !game.uiLock) {
+      // The ghost nearest the centre of the view.
+      let best = tuning.aimAssistRadius
+      let found = false
+      for (const ghost of liveGhosts()) {
+        _v.copy(ghost.position).project(camera)
+        if (_v.z <= -1 || _v.z >= 1) continue
+        // Distance from the centre as a fraction of the screen width.
+        const offset = Math.hypot(_v.x / 2, _v.y / 2 / Math.max(0.01, camera.aspect))
+        if (offset >= best) continue
+        best = offset
+        found = true
+        _ndc.copy(_v)
+      }
+      if (found) {
         const tanV = Math.tan((camera.fov * Math.PI) / 360)
         const yawError = Math.atan(_ndc.x * tanV * camera.aspect)
         const pitchError = Math.atan(_ndc.y * tanV)
@@ -207,13 +206,13 @@ export function CameraMode() {
         const game = useGame.getState()
         game.addShot({
           url,
-          ghostId: result && ghost ? ghost.id : null,
+          ghostId: result ? result.ghostId : null,
           score: result ? result.score : null,
           parts: result ? result.parts : null,
         })
         releaseUnused()
         emit('photo', {
-          ghostId: result && ghost ? ghost.id : null,
+          ghostId: result ? result.ghostId : null,
           quality: result ? result.quality : null,
         })
         // The lock freezes the game on the shot; the card slides in over it.

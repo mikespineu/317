@@ -7,7 +7,8 @@ import { runtime } from '../runtime'
 import { bindNodes } from './bindNodes'
 import type { BoundRoom } from './bindNodes'
 import { buildGreybox } from './greybox'
-import type { RoomDef } from './level0.def'
+import { mergeStatic } from './mergeStatic'
+import type { RoomDef } from './roomDef'
 
 const RoomContext = createContext<BoundRoom | null>(null)
 
@@ -41,7 +42,7 @@ async function loadRoomModel(url: string): Promise<Object3D> {
 // other. A model that fails to load becomes a plain box, so the room still works.
 async function addModelPickups(scene: Object3D, def: RoomDef) {
   for (const p of def.pickups) {
-    if (!('model' in p)) continue
+    if (!p.model) continue
     let node: Object3D
     try {
       node = (await new GLTFLoader().loadAsync(p.model)).scene
@@ -52,8 +53,8 @@ async function addModelPickups(scene: Object3D, def: RoomDef) {
       )
     }
     node.name = p.node
-    node.position.set(...p.at)
-    node.rotation.y = MathUtils.degToRad(p.yawDeg)
+    if (p.at) node.position.set(...p.at)
+    node.rotation.y = MathUtils.degToRad(p.yawDeg ?? 0)
     if (p.glow) {
       // At the lens end. A child of the node, so it goes when the pickup does.
       const glow = new PointLight('#ffd9a0', 0.5, 1.6, 2)
@@ -74,6 +75,8 @@ export function RoomScene({ def, children }: { def: RoomDef; children?: ReactNod
     loadScene(def).then((scene) => {
       if (!alive) return
       const bound = bindNodes(scene, def)
+      // ?nomerge keeps every scenery mesh apart, to compare draw calls.
+      if (!new URLSearchParams(window.location.search).has('nomerge')) mergeStatic(bound, def)
       runtime.colliders = [...bound.colliders]
       setRoom(bound)
     })

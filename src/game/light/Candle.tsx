@@ -14,7 +14,8 @@ import { mix, positionLocal, uniform, vec3 } from 'three/tsl'
 import { CANDLE_FLAG } from '../interaction/actions'
 import { useRoom } from '../room/RoomScene'
 import type { BoundRoom } from '../room/bindNodes'
-import { level0 } from '../room/level0.def'
+import { useRoomDef } from '../room/RoomContext'
+import type { RoomDef } from '../room/roomDef'
 import { useGame } from '../store'
 import { tuning } from '../tuning'
 
@@ -50,35 +51,47 @@ function noise(t: number, seed: number) {
 interface Flame {
   group: Group
   mesh: Mesh
-  light: PointLight
+  light: PointLight | null // one per candle holder, on its first flame
   seed: number
   level: number // 0 out .. 1 lit, eased so it grows and dies rather than snaps
 }
 
-function buildFlames(room: BoundRoom, geometry: SphereGeometry, material: MeshBasicNodeMaterial) {
+function buildFlames(def: RoomDef, room: BoundRoom, geometry: SphereGeometry, material: MeshBasicNodeMaterial) {
   const flames: Flame[] = []
   const box = new Box3()
-  level0.interactables.forEach((def, index) => {
-    if (def.type !== 'candle') return
-    const node = room.nodes.get(def.node)
+  def.interactables.forEach((entry, index) => {
+    if (entry.type !== 'candle') return
+    const node = room.nodes.get(entry.node)
     if (!node) return
-    // The flame stands on the wick, which is the top of the candle's box.
+    // The flame stands on the wick: the definition's wick positions, or the
+    // top of the candle's box.
+    node.updateWorldMatrix(true, false)
     box.setFromObject(node)
-    const group = new Group()
-    group.position.set((box.min.x + box.max.x) / 2, box.max.y - 0.004, (box.min.z + box.max.z) / 2)
+    const wicks = entry.flames?.map((at) => node.localToWorld(new Vector3(...at))) ?? [
+      new Vector3((box.min.x + box.max.x) / 2, box.max.y - 0.004, (box.min.z + box.max.z) / 2),
+    ]
+    wicks.forEach((wick, i) => {
+      const group = new Group()
+      group.position.copy(wick)
 
-    const mesh = new Mesh(geometry, material)
-    mesh.scale.copy(FLAME_SCALE)
-    mesh.raycast = () => {} // the candle is the target, not its flame
-    mesh.renderOrder = 2
+      const mesh = new Mesh(geometry, material)
+      mesh.scale.copy(FLAME_SCALE)
+      mesh.raycast = () => {} // the candle is the target, not its flame
+      mesh.renderOrder = 2
+      group.add(mesh)
 
-    // Always in the scene and switched off through intensity: toggling a
-    // light's visibility would rebuild every lit material and hitch.
-    const light = new PointLight('#ffb45a', 0, tuning.candleDistance, 2)
-    light.position.set(0, 0.035, 0)
-    group.add(mesh, light)
-    room.scene.add(group)
-    flames.push({ group, mesh, light, seed: index * 7.3, level: 0 })
+      // One light per holder, however many flames. Always in the scene and
+      // switched off through intensity: toggling a light's visibility would
+      // rebuild every lit material and hitch.
+      let light: PointLight | null = null
+      if (i === Math.floor(wicks.length / 2)) {
+        light = new PointLight('#ffb45a', 0, tuning.candleDistance, 2)
+        light.position.set(0, 0.035, 0)
+        group.add(light)
+      }
+      room.scene.add(group)
+      flames.push({ group, mesh, light, seed: index * 7.3 + i * 2.9, level: 0 })
+    })
   })
   return flames
 }
@@ -88,6 +101,7 @@ function buildFlames(room: BoundRoom, geometry: SphereGeometry, material: MeshBa
 // to catch the bloom.
 export function Candle() {
   const room = useRoom()
+  const def = useRoomDef()
   const geometry = useMemo(flameGeometry, [])
   const { material, uniforms } = useMemo(() => {
     const level = uniform(0)
@@ -103,12 +117,15 @@ export function Candle() {
     return { material, uniforms: { level } }
   }, [])
 
-  const flames = useMemo(() => buildFlames(room, geometry, material), [room, geometry, material])
+  const flames = useMemo(
+    () => buildFlames(def, room, geometry, material),
+    [def, room, geometry, material],
+  )
 
   useEffect(
     () => () => {
       for (const f of flames) {
-        f.light.dispose()
+        f.light?.dispose()
         f.group.removeFromParent()
       }
       geometry.dispose()
@@ -132,8 +149,10 @@ export function Candle() {
         FLAME_SCALE.z * (0.92 + 0.16 * n),
       )
       f.mesh.rotation.set(sway * 0.3, 0, sway * 0.4)
-      f.light.intensity = f.level * tuning.candleLight * (0.8 + 0.4 * n)
-      f.light.distance = tuning.candleDistance
+      if (f.light) {
+        f.light.intensity = f.level * tuning.candleLight * (0.8 + 0.4 * n)
+        f.light.distance = tuning.candleDistance
+      }
     }
     uniforms.level.value = flames.reduce((m, f) => Math.max(m, f.level), 0)
   })

@@ -1,9 +1,17 @@
-// Hand-written room definition, shaped like the JSON the room loader will read
-// later (see the GDD). Tokens: 'item:x', 'flag:x', 'clue:x'.
+import type { RoomDef } from './roomDef'
+
+// The Level 0 study. Hand-written, shaped like the JSON the room loader will
+// read later (see roomDef.ts).
 export const level0 = {
   id: 'level-0',
+  title: 'The Study',
   scene: '/models/level0/level-0.glb',
   spawn: 'Spawn_Player',
+  atmosphere: {
+    // The window on the north wall (-Z) and where the moon sits behind it.
+    window: { x: 0, y: 1.6, z: -2.58, w: 1.06, h: 1.06, facing: 'north' },
+    moon: [-1.1, 4.4, -6.2],
+  },
   interactables: [
     { node: 'Interact_Painting_Canvas', type: 'uv-reveal', gives: ['clue:drawer-code'] },
     {
@@ -25,18 +33,15 @@ export const level0 = {
     {
       node: 'Pickup_Flashlight',
       item: 'flashlight',
-      model: '/models/level0/flashlight.glb',
+      model: '/models/shared/flashlight.glb',
       at: [0.35, 0.042, 1.15], // metres; the model's origin is its axis, 4 cm up
       yawDeg: 35,
-      glow: true, // a faint warm light so it can be found in the dark
+      glow: true,
     },
     { node: 'Pickup_Battery', item: 'battery' },
     { node: 'Pickup_Battery_Desk', item: 'battery' },
     { node: 'Pickup_Key', item: 'key', visibleWhen: 'flag:drawer-open' },
   ],
-  // Loose scenery that is more than set dressing. `throwable: true` makes a
-  // prop grabbable (E / click) and throwable (E / click again) with the prop
-  // physics. Without it the entry is only a named scenery object.
   props: [
     { node: 'Book_1', label: 'book', throwable: true },
     { node: 'Book_2', label: 'book', throwable: true },
@@ -44,8 +49,45 @@ export const level0 = {
     { node: 'Book_4', label: 'book', throwable: true },
   ],
   ghosts: [{ id: 'wisp-1', type: 'wisp', mesh: 'Wisp', spawn: 'Spawn_Wisp', baseScore: 100 }],
-  mirror: { node: 'Mirror_Surface' },
+  mirror: { node: 'Mirror_Surface', testWord: 'AWAKE' },
+  emergencyPack: { pickup: 'Pickup_Battery' },
+  // Find the light, then (until the painting's code is found) learn about UV.
+  guide: [
+    {
+      id: 'find-light',
+      unless: 'light:held',
+      delay: 0,
+      text: 'Too dark to see. Find the flashlight on the floor and press **E** to pick it up.',
+      touchText: 'Too dark to see. Find the flashlight on the floor and tap it.',
+    },
+    {
+      id: 'uv-sweep',
+      when: ['light:held', 'uv:on'],
+      unless: 'clue:drawer-code',
+      delay: 0,
+      text: 'The UV light shows what the eye cannot. Sweep it slowly across the walls.',
+    },
+    {
+      // Waits a while after the flashlight is found, so the player looks around first.
+      id: 'uv-switch',
+      when: 'light:held',
+      unless: 'clue:drawer-code',
+      delay: 20,
+      delayKey: 'uvHintDelay',
+      text: 'Something may be hidden in this room. Press **Q** for UV light, then sweep the walls.',
+      touchText: 'Something may be hidden in this room. Tap the UV button, then sweep the walls.',
+    },
+  ],
+  debugSkips: [
+    { label: 'clue found', give: ['clue:drawer-code'] },
+    { label: 'drawer unlocked', unlock: 'Interact_Desk_Drawer', give: ['flag:drawer-unlocked'] },
+    { label: 'drawer open', use: 'Interact_Desk_Drawer', give: ['flag:drawer-open'] },
+    { label: 'key in inventory', take: 'Pickup_Key' },
+  ],
   exit: { node: 'Interact_Door', requires: 'item:key' },
-} as const
-
-export type RoomDef = typeof level0
+  complete: {
+    eyebrow: '3.17 · the study',
+    title: 'Level complete',
+    line: 'The lock turns. Cold air from the hallway.',
+  },
+} satisfies RoomDef
