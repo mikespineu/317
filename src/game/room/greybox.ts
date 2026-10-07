@@ -5,7 +5,8 @@ import {
   MeshStandardMaterial,
   Object3D,
   PlaneGeometry,
-  SphereGeometry,
+  Vector2,
+  LatheGeometry,
 } from 'three/webgpu'
 import type { BufferGeometry } from 'three/webgpu'
 
@@ -51,6 +52,22 @@ function empty(parent: Object3D, name: string, pos: V3) {
   node.name = name
   node.position.set(...pos)
   parent.add(node)
+}
+
+// The sheet ghost's bell, hem first: a plain drape up to a round head.
+// Same profile as build_level0.py.
+function wispProfile() {
+  const headR = 0.13
+  const points: Vector2[] = []
+  for (let i = 64; i >= 1; i--) {
+    const t = i / 64
+    points.push(new Vector2(headR + 0.105 * Math.pow(t, 0.8), -0.5 * t))
+  }
+  for (let i = 16; i >= 0; i--) {
+    const a = (i / 16) * (Math.PI / 2)
+    points.push(new Vector2(headR * Math.sin(a), headR * Math.cos(a)))
+  }
+  return points
 }
 
 export function buildGreybox(): Group {
@@ -122,7 +139,7 @@ export function buildGreybox(): Group {
   box(room, 'Pickup_Battery_Desk', [0.1, 0.06, 0.03], [0.45, 0.81, -1.91], '#3f6f5f')
 
   // Wisp: origin at the centre of the head.
-  add(room, 'Wisp', new SphereGeometry(0.15, 16, 12), [-0.5, 1.5, 0.3], '#bff5e0')
+  add(room, 'Wisp', new LatheGeometry(wispProfile(), 160), [-0.5, 1.5, 0.3], '#bff5e0')
 
   // Colliders.
   box(room, 'Collider_Floor', [4, 0.1, 5], [0, -0.05, 0])

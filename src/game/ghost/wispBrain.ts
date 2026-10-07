@@ -170,8 +170,11 @@ export function stepBrain(brain: WispBrain, dt: number, ctx: BrainContext) {
     }
 
     case 'flee': {
-      // Fast at first, easing off as the timer runs out.
-      const ease = Math.min(1, (brain.timer / Math.max(0.01, tuning.wispFleeSeconds)) * 2)
+      // A short push off, fast in the middle, easing off as the timer runs
+      // out. Without the push the head snaps to full speed in one frame.
+      const total = Math.max(0.01, tuning.wispFleeSeconds)
+      const push = Math.min(1, (total - brain.timer) / tuning.wispFleePush)
+      const ease = Math.min(1, (brain.timer / total) * 2) * push * push * (3 - 2 * push)
       brain.position.addScaledVector(brain.fleeDir, tuning.wispFleeSpeed * ease * dt)
       clampInside(brain.position)
       brain.timer -= dt

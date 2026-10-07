@@ -155,7 +155,7 @@ class Mesh:
         return self
 
     def lathe(self, profile, mat, segments=12, bend=None):
-        """Revolve (z, radius) pairs around Z; first and last radius must be 0."""
+        """Revolve (z, radius) pairs around Z. A radius of 0 closes that end; any other leaves it open."""
         bm = self.bm
         slot = self._slot(mat)
         rings = []
@@ -532,13 +532,15 @@ WISP_SPAWN = Vector((-0.5, -0.3, 1.5))
 
 
 def build_wisp_and_spawns():
-    profile = [(0.15, 0), (0.13, 0.075), (0.09, 0.12), (0.03, 0.147), (-0.03, 0.147),
-               (-0.09, 0.125), (-0.15, 0.095), (-0.21, 0.065), (-0.27, 0.04), (-0.32, 0.018), (-0.35, 0)]
-
-    def bend(z):  # tail trails behind (-Y)
-        return Vector((0, -1.2 * (z + 0.09) ** 2 if z < -0.09 else 0, 0))
-
-    Mesh().lathe(profile, "Placeholder_Wisp", 12, bend).finish("Wisp", WISP_SPAWN, "Interactables")
+    # Sheet ghost: a smooth bell, open at the hem; origin at the head centre.
+    # (z, radius) pairs: a round head, then a plain drape. The game's shader
+    # adds the folds and the cloth movement, so the mesh only needs to be
+    # dense and even (about 26k triangles). Keep in step with DRAPE in src/game/ghost/wispMaterial.ts.
+    head_r = 0.13
+    profile = [(head_r * math.cos(a), head_r * math.sin(a))
+               for a in (i / 16 * math.pi / 2 for i in range(17))]
+    profile += [(-0.5 * t, head_r + 0.105 * t ** 0.8) for t in (i / 64 for i in range(1, 65))]
+    Mesh().lathe(profile, "Placeholder_Wisp", 160).finish("Wisp", WISP_SPAWN, "Interactables")
 
     # Spawns: position on the floor (feet) / in the air; +Y of the empty is forward.
     empty("Spawn_Player", (0, -1.8, 0), "Spawns")
