@@ -54,7 +54,7 @@ Fourteen assets cover Level 0; sizes are starting points in metres (width × dep
 | Camera (held) | Body, lens, shutter button | 0.14 × 0.07 × 0.09 | Body centre; lens along Blender +Y | Ghost photos | Blockout |
 | Battery pack | One object | 0.1 × 0.03 × 0.06 | Base centre | Pickup | Blockout |
 | Key | One object | 0.1 long | Centre | Pickup, opens the door | Blockout |
-| Wisp | One simple mesh, a blob with a tail | About 0.5 tall | Centre of the head | Ghost; its look comes from the shader | Blockout |
+| Wisp | One smooth bell: a round head (radius 0.13) and a plain drape, open at the hem, no folds or arms. Dense and even (160 segments, about 26k triangles), because the shader bends it | 0.63 tall, 0.47 wide | Centre of the head | Sheet ghost; the arms, folds and cloth movement come from the shader | Blockout |
 
 In Blender, +Y is forward; the glTF exporter turns it into the forward direction three.js uses, so held items point along +Y.
 
