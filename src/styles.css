@@ -1,80 +1,25 @@
-* {
-  box-sizing: border-box;
+@import 'tailwindcss';
+
+@theme {
+  --color-ink: #07060a;
+  --color-bone: #e8e2d0;
+  --color-gold: #f2c14e;
+  --font-sans: system-ui, sans-serif;
 }
 
-html,
-body {
-  height: 100%;
-}
+@custom-variant portrait-touch (@media (orientation: portrait) and (pointer: coarse));
 
-body {
-  margin: 0;
-  font-family: system-ui, sans-serif;
-  color: #e8e2d0;
-  background: #07060a;
-  overscroll-behavior: none;
-}
+@layer base {
+  html,
+  body {
+    height: 100%;
+  }
 
-a {
-  color: #f2c14e;
-}
+  body {
+    @apply bg-ink font-sans text-bone overscroll-none;
+  }
 
-.title-screen {
-  min-height: 100dvh;
-  display: grid;
-  place-content: center;
-  gap: 1rem;
-  text-align: center;
-  padding: 1rem;
-}
-
-.title-screen h1 {
-  margin: 0;
-  font-size: clamp(4rem, 18vw, 10rem);
-  letter-spacing: 0.05em;
-  color: #f2c14e;
-}
-
-.title-screen p {
-  margin: 0;
-  opacity: 0.7;
-}
-
-.play-link {
-  justify-self: center;
-  margin-top: 1rem;
-  padding: 0.75rem 2rem;
-  border: 1px solid currentColor;
-  border-radius: 999px;
-  text-decoration: none;
-}
-
-.game {
-  position: fixed;
-  inset: 0;
-  touch-action: none;
-}
-
-.hud {
-  position: absolute;
-  left: 1rem;
-  bottom: 1rem;
-  font-size: 0.85rem;
-  opacity: 0.8;
-  pointer-events: none;
-}
-
-.rotate-prompt {
-  display: none;
-  position: absolute;
-  inset: 0;
-  place-content: center;
-  text-align: center;
-  background: #07060a;
-}
-
-@media (orientation: portrait) and (pointer: coarse) {
-  .rotate-prompt {
-    display: grid;
+  a {
+    @apply text-gold;
   }
 }
