@@ -9,3 +9,6 @@ dist/
 .tanstack/
 .vercel/
 *.local
+
+# copied from blender/export by npm run assets
+public/models/

@@ -1,0 +1,131 @@
+import { useEffect, useRef, useState } from 'react'
+import { DEBUG } from '../debug'
+import {
+  LOCK_TARGET_ATTR,
+  installDesktopInput,
+  setPortrait,
+} from '../player/desktopInput'
+import { useGame } from '../store'
+import './rotate-prompt.css'
+
+const coarse = () => window.matchMedia?.('(pointer: coarse)').matches ?? false
+
+// Fullscreen where the API exists (desktop, Android). iPhone Safari has no
+// element fullscreen, so every step is guarded and nothing here may throw.
+function enterFullscreen() {
+  try {
+    const el = document.documentElement as HTMLElement & {
+      webkitRequestFullscreen?: () => Promise<void> | void
+    }
+    if (document.fullscreenElement) return
+    const request = el.requestFullscreen ?? el.webkitRequestFullscreen
+    if (!request) return
+    const lockLandscape = () => {
+      // Android only, and only once fullscreen; elsewhere it rejects.
+      const orientation = screen.orientation as unknown as {
+        lock?: (o: string) => Promise<void>
+      } | null
+      try {
+        orientation?.lock?.('landscape')?.catch?.(() => {})
+      } catch {
+        // not supported
+      }
+    }
+    const result = request.call(el, { navigationUI: 'hide' }) as Promise<void> | undefined
+    result?.then?.(lockLandscape)?.catch?.(() => {})
+  } catch {
+    // no fullscreen on this device; the rotate prompt and safe areas cover it
+  }
+}
+
+const CONTROLS: [keys: string, action: string][] = [
+  ['W A S D', 'Move'],
+  ['Mouse', 'Look'],
+  ['E / Click', 'Interact'],
+  ['F', 'Light on / off'],
+  ['Q', 'White / UV'],
+  ['R', 'Swap battery'],
+  ['Right mouse', 'Raise camera, click to shoot'],
+  ['Esc', 'Pause'],
+]
+
+// Shell overlays: the portrait prompt (touch) and the click-to-play / paused
+// card (desktop). Also installs the desktop input, since both need to be up
+// before the room has loaded.
+export function RotatePrompt() {
+  const root = useRef<HTMLDivElement>(null)
+  const touch = useGame((s) => s.touch)
+  const paused = useGame((s) => s.paused)
+  const modal = useGame((s) => s.uiLock !== null)
+  const [portrait, setPortraitState] = useState(false)
+  const [started, setStarted] = useState(false)
+
+  useEffect(() => {
+    const game = root.current?.parentElement
+    if (game) return installDesktopInput(game)
+  }, [])
+
+  useEffect(() => {
+    if (!window.matchMedia) return
+    const mq = window.matchMedia('(orientation: portrait)')
+    const update = () => {
+      const value = mq.matches && (touch || coarse())
+      setPortraitState(value)
+      setPortrait(value)
+    }
+    update()
+    mq.addEventListener('change', update)
+    return () => {
+      mq.removeEventListener('change', update)
+      setPortrait(false)
+    }
+  }, [touch])
+
+  useEffect(() => {
+    if (!paused) setStarted(true)
+  }, [paused])
+
+  useEffect(() => {
+    // With the debug panel open on desktop, fullscreen only gets in the way.
+    if (DEBUG && !coarse()) return
+    // `click` follows both a mouse press and a touch tap while the user
+    // activation that fullscreen needs is still live.
+    const once = () => enterFullscreen()
+    window.addEventListener('click', once, { once: true, capture: true })
+    return () => window.removeEventListener('click', once, { capture: true })
+  }, [])
+
+  const lockTarget = { [LOCK_TARGET_ATTR]: '' }
+
+  return (
+    <div ref={root} className="shell">
+      {portrait && (
+        <div className="shell-rotate" role="alert">
+          <svg viewBox="0 0 64 64" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
+            <rect className="shell-rotate-phone" x="22" y="10" width="20" height="36" rx="3" />
+            <path d="M12 44a22 22 0 0 0 20 14M32 58l-5-5M32 58l-5 4" strokeLinecap="round" />
+          </svg>
+          <p className="shell-title">Rotate your device</p>
+          <p className="shell-note">3.17 plays in landscape.</p>
+        </div>
+      )}
+      {!portrait && !touch && paused && !modal && (
+        <div className="shell-pause" {...lockTarget}>
+          <div className="shell-card">
+            <p className="shell-kicker">3.17</p>
+            <p className="shell-title">{started ? 'Paused' : 'Click to play'}</p>
+            {started && <p className="shell-note">Click to resume</p>}
+            <dl className="shell-controls">
+              {CONTROLS.map(([keys, action]) => (
+                <div key={keys}>
+                  <dt>{keys}</dt>
+                  <dd>{action}</dd>
+                </div>
+              ))}
+            </dl>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}

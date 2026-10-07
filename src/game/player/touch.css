@@ -1,0 +1,137 @@
+.touch {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+  --touch-cream: #e9dcc0;
+  --touch-ink: rgba(12, 11, 18, 0.5);
+}
+
+/* Floating joystick: placed under the thumb by touchInput.tsx. */
+.touch-stick {
+  position: absolute;
+  opacity: 0;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  border: 1.5px solid rgba(233, 220, 192, 0.3);
+  background: radial-gradient(circle, rgba(12, 11, 18, 0.1) 40%, rgba(12, 11, 18, 0.42));
+  transition: opacity 0.12s;
+}
+
+.touch-knob {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 44%;
+  height: 44%;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  border: 1.5px solid rgba(233, 220, 192, 0.7);
+  background: rgba(233, 220, 192, 0.14);
+}
+
+/* Right edge, bottom-anchored: the lower rows sit under a resting thumb. */
+.touch-buttons {
+  position: absolute;
+  right: calc(env(safe-area-inset-right, 0px) + 14px);
+  bottom: calc(env(safe-area-inset-bottom, 0px) + 14px);
+  display: grid;
+  grid-template-columns: repeat(2, 56px);
+  grid-template-rows: repeat(3, 56px);
+  grid-template-areas:
+    'battery camera'
+    'mode light'
+    'shutter interact';
+  gap: 10px;
+}
+
+.touch-btn {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 56px;
+  height: 56px;
+  padding: 0;
+  border-radius: 50%;
+  border: 1.5px solid rgba(233, 220, 192, 0.38);
+  background: var(--touch-ink);
+  color: var(--touch-cream);
+  font: inherit;
+  pointer-events: auto;
+  touch-action: none;
+  -webkit-tap-highlight-color: transparent;
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  transition:
+    transform 0.08s,
+    background-color 0.15s,
+    border-color 0.15s,
+    box-shadow 0.15s;
+}
+
+.touch-btn:active {
+  transform: scale(0.92);
+  background: rgba(233, 220, 192, 0.2);
+}
+
+.touch-btn svg {
+  width: 26px;
+  height: 26px;
+}
+
+.touch-glyph {
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  /* optical centring: the tracking adds space after the last letter */
+  margin-right: -0.08em;
+}
+
+.touch-btn.is-dim {
+  opacity: 0.45;
+}
+
+.touch-btn.is-active {
+  border-color: currentColor;
+}
+
+.touch-btn.tone-warm.is-active {
+  color: #ffd98a;
+  box-shadow: 0 0 14px rgba(255, 200, 100, 0.35);
+}
+
+.touch-btn.tone-uv.is-active {
+  color: #c9a2ff;
+  box-shadow: 0 0 14px rgba(150, 90, 255, 0.45);
+}
+
+.touch-btn.tone-ghost.is-active {
+  color: #b9f2df;
+  box-shadow: 0 0 14px rgba(150, 240, 210, 0.3);
+}
+
+.touch-badge {
+  position: absolute;
+  top: -3px;
+  right: -3px;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 5px;
+  border-radius: 10px;
+  background: var(--touch-cream);
+  color: #14121c;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 20px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .touch-btn,
+  .touch-stick {
+    transition: none;
+  }
+}
