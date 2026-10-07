@@ -41,20 +41,20 @@ Fourteen assets cover Level 0; sizes are starting points in metres (width × dep
 
 | Asset | Separate objects | Approx. size (m) | Origin (pivot) | Used for | Status |
 | --- | --- | --- | --- | --- | --- |
-| Room shell | Floor, 4 walls, ceiling, skirting, window frame, window glass, door frame | 4.0 × 5.0, 2.8 high | Floor centre at world origin | Walls, moonlight through the window | Not started |
-| Door | Door leaf, handle | 1.0 × 0.06 × 2.2 | On the hinge edge, at floor level | Opens with the key | Not started |
-| Desk | Desk body, drawer, padlock | 1.4 × 0.7 × 0.78 | Body: floor centre; drawer: back centre, slides out | Code lock, holds the key | Not started |
-| Chair | One object | 0.5 × 0.5 × 0.95 | Floor centre | Character, collision | Not started |
-| Bookshelf | Frame, 3–4 loose books | 1.0 × 0.35 × 2.0 | Floor centre | Battery pack hiding spot | Not started |
-| Wall mirror | Frame, mirror surface | 0.7 × 0.05 × 1.1 | Back centre | Reflection test | Not started |
-| Painting | Frame, canvas | 0.8 × 0.05 × 1.0 | Back centre | UV writing with the drawer code | Not started |
-| Rug | One object | 2.0 × 1.4 | Floor centre | Character | Not started |
-| Small props | Two of: candle, inkwell, small clock, lamp | Small | Base centre | Character on the desk and shelf | Not started |
-| Flashlight (held) | Body, lens | 0.25 long | Where the hand grips; lens along Blender +Y | White and UV light | Not started |
-| Camera (held) | Body, lens, shutter button | 0.14 × 0.07 × 0.09 | Body centre; lens along Blender +Y | Ghost photos | Not started |
-| Battery pack | One object | 0.1 × 0.03 × 0.06 | Base centre | Pickup | Not started |
-| Key | One object | 0.1 long | Centre | Pickup, opens the door | Not started |
-| Wisp | One simple mesh, a blob with a tail | About 0.5 tall | Centre of the head | Ghost; its look comes from the shader | Not started |
+| Room shell | Floor, 4 walls, ceiling, skirting, window frame, window glass, door frame | 4.0 × 5.0, 2.8 high | Floor centre at world origin | Walls, moonlight through the window | Blockout |
+| Door | Door leaf, handle | 1.0 × 0.06 × 2.2 | On the hinge edge, at floor level | Opens with the key | Blockout |
+| Desk | Desk body, drawer, padlock | 1.4 × 0.7 × 0.78 | Body: floor centre; drawer: back centre, slides out | Code lock, holds the key | Blockout |
+| Chair | One object | 0.5 × 0.5 × 0.95 | Floor centre | Character, collision | Blockout |
+| Bookshelf | Frame, 3–4 loose books | 1.0 × 0.35 × 2.0 | Floor centre | Battery pack hiding spot | Blockout |
+| Wall mirror | Frame, mirror surface | 0.7 × 0.05 × 1.1 | Back centre | Reflection test | Blockout |
+| Painting | Frame, canvas | 0.8 × 0.05 × 1.0 | Back centre | UV writing with the drawer code | Blockout |
+| Rug | One object | 2.0 × 1.4 | Floor centre | Character | Blockout |
+| Small props | Two of: candle, inkwell, small clock, lamp | Small | Base centre | Character on the desk and shelf | Blockout |
+| Flashlight (held) | Body, lens | 0.25 long | Where the hand grips; lens along Blender +Y | White and UV light | Blockout |
+| Camera (held) | Body, lens, shutter button | 0.14 × 0.07 × 0.09 | Body centre; lens along Blender +Y | Ghost photos | Blockout |
+| Battery pack | One object | 0.1 × 0.03 × 0.06 | Base centre | Pickup | Blockout |
+| Key | One object | 0.1 long | Centre | Pickup, opens the door | Blockout |
+| Wisp | One simple mesh, a blob with a tail | About 0.5 tall | Centre of the head | Ghost; its look comes from the shader | Blockout |
 
 In Blender, +Y is forward; the glTF exporter turns it into the forward direction three.js uses, so held items point along +Y.
 
