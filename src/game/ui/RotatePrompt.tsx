@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState } from 'react'
-import { DEBUG } from '../debug'
 import {
   LOCK_TARGET_ATTR,
   installDesktopInput,
@@ -10,34 +9,6 @@ import './rotate-prompt.css'
 
 const coarse = () => window.matchMedia?.('(pointer: coarse)').matches ?? false
 
-// Fullscreen where the API exists (desktop, Android). iPhone Safari has no
-// element fullscreen, so every step is guarded and nothing here may throw.
-function enterFullscreen() {
-  try {
-    const el = document.documentElement as HTMLElement & {
-      webkitRequestFullscreen?: () => Promise<void> | void
-    }
-    if (document.fullscreenElement) return
-    const request = el.requestFullscreen ?? el.webkitRequestFullscreen
-    if (!request) return
-    const lockLandscape = () => {
-      // Android only, and only once fullscreen; elsewhere it rejects.
-      const orientation = screen.orientation as unknown as {
-        lock?: (o: string) => Promise<void>
-      } | null
-      try {
-        orientation?.lock?.('landscape')?.catch?.(() => {})
-      } catch {
-        // not supported
-      }
-    }
-    const result = request.call(el, { navigationUI: 'hide' }) as Promise<void> | undefined
-    result?.then?.(lockLandscape)?.catch?.(() => {})
-  } catch {
-    // no fullscreen on this device; the rotate prompt and safe areas cover it
-  }
-}
-
 const CONTROLS: [keys: string, action: string][] = [
   ['W A S D', 'Move'],
   ['Mouse', 'Look'],
@@ -45,8 +16,9 @@ const CONTROLS: [keys: string, action: string][] = [
   ['F', 'Light on / off'],
   ['Q', 'White / UV'],
   ['R', 'Swap battery'],
-  ['Right mouse', 'Raise camera, click to shoot'],
-  ['Esc', 'Pause'],
+  ['P / Right mouse', 'Photo mode on / off'],
+  ['Click', 'Shoot, in photo mode'],
+  ['Esc', 'Leave photo mode, or pause'],
 ]
 
 // Shell overlays: the portrait prompt (touch) and the click-to-play / paused
@@ -85,16 +57,6 @@ export function RotatePrompt() {
     if (!paused) setStarted(true)
   }, [paused])
 
-  useEffect(() => {
-    // With the debug panel open on desktop, fullscreen only gets in the way.
-    if (DEBUG && !coarse()) return
-    // `click` follows both a mouse press and a touch tap while the user
-    // activation that fullscreen needs is still live.
-    const once = () => enterFullscreen()
-    window.addEventListener('click', once, { once: true, capture: true })
-    return () => window.removeEventListener('click', once, { capture: true })
-  }, [])
-
   const lockTarget = { [LOCK_TARGET_ATTR]: '' }
 
   return (
@@ -111,10 +73,16 @@ export function RotatePrompt() {
       )}
       {!portrait && !touch && paused && !modal && (
         <div className="shell-pause" {...lockTarget}>
-          <div className="shell-card">
+          <div className="shell-card print-paper">
             <p className="shell-kicker">3.17</p>
             <p className="shell-title">{started ? 'Paused' : 'Click to play'}</p>
             {started && <p className="shell-note">Click to resume</p>}
+            {!started && (
+              <ul className="shell-goals">
+                <li>Find the way out of the room.</li>
+                <li>Photograph the ghosts to prove they exist.</li>
+              </ul>
+            )}
             <dl className="shell-controls">
               {CONTROLS.map(([keys, action]) => (
                 <div key={keys}>

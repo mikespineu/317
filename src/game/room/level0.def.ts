@@ -15,11 +15,33 @@ export const level0 = {
       sets: 'flag:drawer-open',
     },
     { node: 'Interact_Door', type: 'door', requires: 'item:key', openAngleDeg: 95 },
+    // Named by the definition rather than by an Interact_ prefix, so no re-export is needed.
+    { node: 'Prop_Candle', type: 'candle' },
   ],
   pickups: [
+    // The flashlight starts on the floor. It has no node in level-0.glb: an
+    // entry with a `model` is loaded and placed by the room loader, so it can
+    // be moved here without opening Blender.
+    {
+      node: 'Pickup_Flashlight',
+      item: 'flashlight',
+      model: '/models/level0/flashlight.glb',
+      at: [0.35, 0.042, 1.15], // metres; the model's origin is its axis, 4 cm up
+      yawDeg: 35,
+      glow: true, // a faint warm light so it can be found in the dark
+    },
     { node: 'Pickup_Battery', item: 'battery' },
     { node: 'Pickup_Battery_Desk', item: 'battery' },
     { node: 'Pickup_Key', item: 'key', visibleWhen: 'flag:drawer-open' },
+  ],
+  // Loose scenery that is more than set dressing. `throwable: true` makes a
+  // prop grabbable (E / click) and throwable (E / click again) with the prop
+  // physics. Without it the entry is only a named scenery object.
+  props: [
+    { node: 'Book_1', label: 'book', throwable: true },
+    { node: 'Book_2', label: 'book', throwable: true },
+    { node: 'Book_3', label: 'book', throwable: true },
+    { node: 'Book_4', label: 'book', throwable: true },
   ],
   ghosts: [{ id: 'wisp-1', type: 'wisp', mesh: 'Wisp', spawn: 'Spawn_Wisp', baseScore: 100 }],
   mirror: { node: 'Mirror_Surface' },

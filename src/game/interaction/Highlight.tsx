@@ -39,7 +39,12 @@ function highlighted(source: Emissive): Emissive {
 function ownMeshes(room: BoundRoom, node: Object3D, out: Mesh[] = []) {
   if ((node as Mesh).isMesh) out.push(node as Mesh)
   for (const child of node.children) {
-    if (room.interactables.has(child.name) || room.pickups.has(child.name)) continue
+    if (
+      room.interactables.has(child.name) ||
+      room.pickups.has(child.name) ||
+      room.props.has(child.name)
+    )
+      continue
     ownMeshes(room, child, out)
   }
   return out

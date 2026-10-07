@@ -2,7 +2,8 @@
   position: absolute;
   inset: 0;
   pointer-events: none;
-  color: #e9dcc0;
+  font-family: var(--font-display);
+  color: var(--color-paper);
 }
 
 .shell p {
@@ -11,13 +12,15 @@
 
 .shell-title {
   font-size: clamp(1.25rem, 3.2vw, 1.75rem);
+  font-weight: 700;
   letter-spacing: 0.04em;
   text-wrap: balance;
 }
 
 .shell-note {
   font-size: 0.875rem;
-  opacity: 0.6;
+  font-style: italic;
+  opacity: 0.7;
 }
 
 /* Portrait prompt: covers everything, including open modals. */
@@ -31,7 +34,7 @@
   gap: 0.6rem;
   padding: calc(env(safe-area-inset-top, 0px) + 1.5rem) 1.5rem
     calc(env(safe-area-inset-bottom, 0px) + 1.5rem);
-  background: #07060a;
+  background: var(--color-ink);
   text-align: center;
   pointer-events: auto;
 }
@@ -40,12 +43,12 @@
   width: 88px;
   height: 88px;
   margin-bottom: 0.5rem;
-  color: #f2c14e;
+  color: var(--color-saffron);
 }
 
 .shell-rotate-phone {
   transform-origin: 32px 28px;
-  animation: shell-rotate-phone 2.4s ease-in-out infinite;
+  animation: shell-rotate-phone 2.4s steps(12) infinite;
 }
 
 @keyframes shell-rotate-phone {
@@ -59,32 +62,57 @@
   }
 }
 
-/* Desktop: click anywhere on it to take the pointer lock. */
+/* Desktop: click anywhere on it to take the pointer lock. The scene stays
+   visible behind a flat wash of ink. */
 .shell-pause {
   position: absolute;
   inset: 0;
   display: grid;
   place-items: center;
   padding: 1.5rem;
-  background: radial-gradient(ellipse at center, rgba(7, 6, 10, 0.55), rgba(7, 6, 10, 0.86));
+  background: rgba(13, 12, 31, 0.78);
   cursor: pointer;
   pointer-events: auto;
   user-select: none;
   -webkit-user-select: none;
 }
 
+/* The card is a sheet of paper (.print-paper), so its text is ink. */
 .shell-card {
   display: grid;
   justify-items: center;
   gap: 0.35rem;
+  padding: 1.6rem 2.2rem 1.8rem;
   text-align: center;
+  box-shadow: 0.35em 0.35em 0 var(--color-vermilion);
 }
 
 .shell-kicker {
   font-size: 0.8rem;
+  font-weight: 700;
   letter-spacing: 0.35em;
   margin-right: -0.35em;
-  color: #f2c14e;
+  color: var(--color-vermilion);
+}
+
+/* The task, shown on the first card only. */
+.shell-goals {
+  display: grid;
+  gap: 0.3rem;
+  margin: 1rem 0 0;
+  padding: 0;
+  list-style: none;
+  font-size: 0.95rem;
+  text-align: left;
+}
+
+.shell-goals li::before {
+  content: '';
+  display: inline-block;
+  width: 0.5em;
+  height: 0.5em;
+  margin-right: 0.6em;
+  background: var(--color-vermilion);
 }
 
 .shell-controls {
@@ -92,7 +120,7 @@
   gap: 0.4rem;
   margin: 1.4rem 0 0;
   padding-top: 1.2rem;
-  border-top: 1px solid rgba(233, 220, 192, 0.18);
+  border-top: var(--line) solid var(--color-ink);
   font-size: 0.875rem;
   text-align: left;
 }
@@ -106,16 +134,15 @@
 
 .shell-controls dt {
   justify-self: end;
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
   font-size: 0.8rem;
+  font-weight: 700;
   letter-spacing: 0.06em;
-  color: #f2c14e;
+  color: var(--color-vermilion);
   white-space: nowrap;
 }
 
 .shell-controls dd {
   margin: 0;
-  opacity: 0.75;
 }
 
 @media (prefers-reduced-motion: reduce) {

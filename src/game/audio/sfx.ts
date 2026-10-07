@@ -11,6 +11,11 @@ export type SfxName =
   | 'lowTick'
   | 'chime'
   | 'pickup'
+  | 'candleLight'
+  | 'candleOut'
+  | 'propGrab'
+  | 'propThrow'
+  | 'propHit'
   | 'locked'
   | 'wheelClick'
   | 'padlockOpen'
@@ -67,6 +72,35 @@ const voices: Record<SfxName, (a: Audio) => void> = {
     tone(a, { type: 'triangle', from: 620, dur: 0.11, gain: 0.09 })
     tone(a, { type: 'triangle', from: 930, at: 0.07, dur: 0.16, gain: 0.08 })
     click(a, 0, 1800, 0.06, 0.02)
+  },
+
+  // A match strike and the wick catching.
+  candleLight(a) {
+    noise(a, { filter: 'bandpass', from: 2800, to: 1800, q: 1.1, dur: 0.1, gain: 0.1, attack: 0.005 })
+    noise(a, { filter: 'lowpass', from: 500, at: 0.08, dur: 0.3, gain: 0.07, attack: 0.06 })
+    tone(a, { type: 'triangle', from: 220, to: 330, at: 0.08, dur: 0.12, gain: 0.015, attack: 0.03 })
+  },
+
+  // A short breath, and the flame gone.
+  candleOut(a) {
+    noise(a, { filter: 'bandpass', from: 1100, to: 350, q: 0.9, dur: 0.28, gain: 0.09, attack: 0.03 })
+  },
+
+  // Cardboard and paper taken off a shelf.
+  propGrab(a) {
+    noise(a, { filter: 'bandpass', from: 1700, to: 1100, q: 1.2, dur: 0.07, gain: 0.07, attack: 0.01 })
+    thud(a, 0.03, 190, 0.07, 0.06)
+  },
+
+  // Air moved past the ear.
+  propThrow(a) {
+    noise(a, { filter: 'bandpass', from: 500, to: 2600, q: 1.6, dur: 0.16, gain: 0.08, attack: 0.04 })
+  },
+
+  // A flat knock, different each time.
+  propHit(a) {
+    thud(a, 0, 150 + Math.random() * 70, 0.17, 0.09)
+    click(a, 0, 1100 + Math.random() * 500, 0.09, 0.02)
   },
 
   // A handle that gives a little and stops.

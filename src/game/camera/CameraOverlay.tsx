@@ -9,6 +9,7 @@ const FLASH_MS = 150
 export function CameraOverlay() {
   const raised = useGame((s) => s.cameraRaised)
   const locked = useGame((s) => s.uiLock !== null)
+  const touch = useGame((s) => s.touch)
   const flashEl = useRef<HTMLDivElement>(null)
   const coolEl = useRef<HTMLDivElement>(null)
 
@@ -42,6 +43,9 @@ export function CameraOverlay() {
         <i className="viewfinder-corner is-bl" />
         <i className="viewfinder-corner is-br" />
         <div className="viewfinder-centre" />
+        {!touch && (
+          <div className="viewfinder-hint print-ink">Click to shoot · P or Esc to leave</div>
+        )}
         <div className="viewfinder-cooldown">
           <div className="viewfinder-cooldown-fill" ref={coolEl} />
         </div>

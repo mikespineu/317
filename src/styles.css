@@ -1,13 +1,31 @@
 @import 'tailwindcss';
 
-@theme {
-  --color-ink: #07060a;
-  --color-bone: #e8e2d0;
-  --color-gold: #f2c14e;
+/* Woodblock-print palette. `static` keeps every variable in the output so the
+   plain CSS files under src/game can use them without a Tailwind utility. */
+@theme static {
+  --color-ink: #0d0c1f; /* the key block: outlines, text on paper, panels */
+  --color-indigo: #1b2150;
+  --color-periwinkle: #8f98dc;
+  --color-paper: #efe4c6;
+  --color-paper-shade: #d6c7a0;
+  --color-vermilion: #c63b2b; /* the hanko seal: accents, warnings, stamps */
+  --color-saffron: #e2a63a; /* flashlight and brass */
+  --color-matcha: #5d9a7c;
+  --color-uv: #9a6cff;
+  --color-ghost: #a6e6cf;
   --font-sans: system-ui, sans-serif;
+  --font-display:
+    'Hiragino Mincho ProN', 'Yu Mincho', 'Iowan Old Style', 'Palatino Linotype', Palatino,
+    'Book Antiqua', Georgia, serif;
 }
 
 @custom-variant portrait-touch (@media (orientation: portrait) and (pointer: coarse));
+
+:root {
+  /* Kozo paper fibres: long horizontal strands in a warm brown. */
+  --paper-grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9 .3' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .36 0 0 0 0 .27 0 0 0 0 .14 0 0 0 .6 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.38'/%3E%3C/svg%3E");
+  --line: 2px; /* weight of every ink outline in the UI */
+}
 
 @layer base {
   html,
@@ -16,10 +34,29 @@
   }
 
   body {
-    @apply bg-ink font-sans text-bone overscroll-none;
+    @apply bg-ink font-sans text-paper overscroll-none;
   }
 
   a {
-    @apply text-gold;
+    @apply text-saffron;
+  }
+}
+
+/* Two panel kinds shared by every overlay. Paper is for things the player
+   reads or picks up; ink is for the always-on furniture. Both are flat, with
+   a hard offset shadow like a block that printed slightly off register. */
+@layer components {
+  .print-paper {
+    color: var(--color-ink);
+    background: var(--paper-grain), var(--color-paper);
+    border: var(--line) solid var(--color-ink);
+    box-shadow: 0.25em 0.25em 0 var(--color-ink);
+  }
+
+  .print-ink {
+    color: var(--color-paper);
+    background: rgba(13, 12, 31, 0.9);
+    border: var(--line) solid var(--color-paper-shade);
+    box-shadow: 0.2em 0.2em 0 rgba(0, 0, 0, 0.55);
   }
 }

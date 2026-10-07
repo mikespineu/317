@@ -1,4 +1,6 @@
-/* Combination padlock: brass body, dark steel wheels, cream digits. Sized in
+/* Combination padlock, drawn like a woodblock print: flat saffron body, a
+   periwinkle shackle, paper wheels, a thick ink outline on everything and
+   hatching where a render would have shading. No gradients, no glow. Sized in
    em off the viewport height so it fits a phone in landscape. */
 .padlock-overlay {
   position: absolute;
@@ -7,41 +9,48 @@
   display: grid;
   place-content: center;
   justify-items: center;
-  gap: 1.1em;
+  gap: 1.3em;
   padding: max(0.75rem, env(safe-area-inset-top)) max(0.75rem, env(safe-area-inset-right))
     max(0.75rem, env(safe-area-inset-bottom)) max(0.75rem, env(safe-area-inset-left));
   font-size: clamp(11px, 3.5vh, 19px);
-  font-family: 'Iowan Old Style', 'Palatino Linotype', Palatino, 'Book Antiqua', Georgia, serif;
-  background: radial-gradient(ellipse at 50% 45%, rgba(20, 14, 22, 0.72), rgba(4, 3, 6, 0.93) 70%);
+  font-family: var(--font-display);
+  background: rgba(13, 12, 31, 0.9);
   pointer-events: auto;
   user-select: none;
   -webkit-user-select: none;
   -webkit-tap-highlight-color: transparent;
-  animation: padlock-in 0.22s ease-out both;
+  animation: padlock-in 0.22s steps(4) both;
 }
 
+/* The ink block prints a hard shadow under the whole lock. */
 .padlock {
   display: grid;
   justify-items: center;
-  filter: drop-shadow(0 1.4em 1.6em rgba(0, 0, 0, 0.65));
+  filter: drop-shadow(0.4em 0.4em 0 var(--color-vermilion));
 }
 
 .padlock.is-wrong {
-  animation: padlock-shake 0.38s cubic-bezier(0.36, 0.07, 0.19, 0.97);
+  animation: padlock-shake 0.38s steps(8);
 }
 
+/* Shackle: an ink arc with a periwinkle arc printed inside it. */
 .padlock-shackle {
+  position: relative;
   width: 9.5em;
   height: 5em;
   margin-bottom: -0.9em;
-  border: 1.15em solid #8d9299;
+  border: 1.15em solid var(--color-ink);
   border-bottom: 0;
   border-radius: 4.75em 4.75em 0 0;
-  background: transparent;
-  box-shadow:
-    inset 0.22em 0.25em 0.3em rgba(255, 255, 255, 0.35),
-    inset -0.25em -0.1em 0.35em rgba(0, 0, 0, 0.55);
-  border-color: #a4a9af #6d7279 #6d7279 #9a9fa6;
+}
+
+.padlock-shackle::after {
+  content: '';
+  position: absolute;
+  inset: -0.95em -0.95em 0;
+  border: 0.75em solid var(--color-periwinkle);
+  border-bottom: 0;
+  border-radius: 4.6em 4.6em 0 0;
 }
 
 .padlock-body {
@@ -49,25 +58,36 @@
   display: grid;
   gap: 1em;
   padding: 1.3em 1.5em 1.2em;
-  border-radius: 1.1em 1.1em 1.5em 1.5em;
-  background:
-    linear-gradient(100deg, rgba(255, 236, 170, 0.22), transparent 28%, transparent 70%, rgba(0, 0, 0, 0.3)),
-    linear-gradient(180deg, #b98d3c 0%, #94692a 46%, #6c4a1d 100%);
-  box-shadow:
-    inset 0 0.12em 0 rgba(255, 233, 170, 0.55),
-    inset 0 -0.35em 0.6em rgba(40, 22, 6, 0.6),
-    0 0 0 0.09em #3a2710;
+  border: 0.18em solid var(--color-ink);
+  border-radius: 0.5em 0.5em 0.9em 0.9em;
+  background: var(--color-saffron);
+}
+
+/* Hatching down the shaded side. */
+.padlock-body::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 24%;
+  border-radius: 0 0.4em 0.7em 0;
+  background: repeating-linear-gradient(
+    135deg,
+    transparent 0 0.28em,
+    rgba(13, 12, 31, 0.32) 0.28em 0.4em
+  );
+  pointer-events: none;
 }
 
 .padlock-wheels {
+  position: relative;
+  z-index: 1;
   display: flex;
-  gap: 0.7em;
-  padding: 0.55em 0.7em;
-  border-radius: 0.8em;
-  background: linear-gradient(180deg, #2a1c0e, #432e14);
-  box-shadow:
-    inset 0 0.2em 0.5em rgba(0, 0, 0, 0.7),
-    0 0.08em 0 rgba(255, 226, 160, 0.35);
+  gap: 0.6em;
+  padding: 0.6em;
+  border: 0.14em solid var(--color-ink);
+  background: var(--color-indigo);
 }
 
 .wheel {
@@ -82,10 +102,10 @@
   padding: 0;
   border: 0;
   background: none;
-  color: #d9b56a;
+  color: var(--color-paper);
   cursor: pointer;
-  opacity: 0.6;
-  transition: opacity 0.12s, transform 0.08s;
+  opacity: 0.55;
+  transition: opacity 0.12s;
 }
 
 .wheel-arrow::before {
@@ -95,8 +115,8 @@
   top: 50%;
   width: 0.8em;
   height: 0.8em;
-  border-left: 0.2em solid currentColor;
-  border-top: 0.2em solid currentColor;
+  border-left: 0.22em solid currentColor;
+  border-top: 0.22em solid currentColor;
   transform: translate(-50%, -25%) rotate(45deg);
 }
 
@@ -109,32 +129,35 @@
   opacity: 1;
 }
 
-.wheel-arrow:active {
-  transform: scale(0.86);
+.wheel.is-selected .wheel-arrow {
+  color: var(--color-saffron);
 }
 
+.wheel-arrow:active {
+  translate: 0 0.08em;
+}
+
+/* The drum: a paper strip with hatching top and bottom where it turns away. */
 .wheel-window {
   position: relative;
   height: 6.4em;
   overflow: hidden;
-  border-radius: 0.45em;
   cursor: ns-resize;
   touch-action: none;
-  /* A drum: lit in the middle, falling away top and bottom. */
-  background: linear-gradient(180deg, #050506 0%, #2c2e33 30%, #4a4d54 50%, #2c2e33 70%, #050506 100%);
-  box-shadow:
-    inset 0 0 0 0.08em #0b0b0d,
-    inset 0.35em 0 0.4em -0.2em rgba(0, 0, 0, 0.8),
-    inset -0.35em 0 0.4em -0.2em rgba(0, 0, 0, 0.8);
+  border: 0.14em solid var(--color-ink);
+  background:
+    repeating-linear-gradient(0deg, rgba(13, 12, 31, 0.4) 0 0.07em, transparent 0.07em 0.26em) top /
+      100% 26% no-repeat,
+    repeating-linear-gradient(0deg, rgba(13, 12, 31, 0.4) 0 0.07em, transparent 0.07em 0.26em)
+      bottom / 100% 26% no-repeat,
+    var(--paper-grain), var(--color-paper);
 }
 
+/* The chosen wheel gets a red frame. */
 .wheel.is-selected .wheel-window {
   box-shadow:
-    inset 0 0 0 0.08em #0b0b0d,
-    inset 0.35em 0 0.4em -0.2em rgba(0, 0, 0, 0.8),
-    inset -0.35em 0 0.4em -0.2em rgba(0, 0, 0, 0.8),
-    0 0 0 0.14em #f2c14e,
-    0 0 0.9em rgba(242, 193, 78, 0.35);
+    0 0 0 0.14em var(--color-vermilion),
+    0 0 0 0.28em var(--color-ink);
 }
 
 .wheel-strip {
@@ -150,9 +173,10 @@
 .wheel-strip span {
   font-size: 2.1em;
   line-height: 1;
+  font-weight: 700;
   font-variant-numeric: lining-nums tabular-nums;
-  color: #efe3c2;
-  opacity: 0.22;
+  color: var(--color-ink);
+  opacity: 0.25;
   transform: scaleY(0.72);
 }
 
@@ -160,69 +184,74 @@
   font-size: 3.3em;
   opacity: 1;
   transform: none;
-  text-shadow:
-    0 0.04em 0 #000,
-    0 0 0.5em rgba(255, 226, 160, 0.25);
 }
 
 .padlock-actions {
+  position: relative;
+  z-index: 1;
   display: flex;
-  gap: 0.7em;
+  gap: 0.8em;
 }
 
 .padlock-btn {
   flex: 1;
   min-height: 2.9em;
   padding: 0 1em;
-  border: 0;
-  border-radius: 0.6em;
+  border: 0.14em solid var(--color-ink);
   font: inherit;
   font-size: 1em;
-  letter-spacing: 0.08em;
+  font-weight: 700;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: #ecdcb4;
-  background: linear-gradient(180deg, #3b2a14, #2a1c0d);
-  box-shadow:
-    inset 0 0.08em 0 rgba(255, 226, 160, 0.25),
-    0 0.1em 0 rgba(0, 0, 0, 0.5);
+  color: var(--color-paper);
+  background: var(--color-ink);
+  box-shadow: 0.14em 0.14em 0 rgba(13, 12, 31, 0.55);
   cursor: pointer;
 }
 
 .padlock-btn.is-primary {
-  color: #2a1a06;
-  background: linear-gradient(180deg, #f6d27a, #d9a53c);
-  box-shadow:
-    inset 0 0.08em 0 rgba(255, 255, 255, 0.55),
-    0 0.1em 0 rgba(0, 0, 0, 0.5);
+  background: var(--color-vermilion);
+}
+
+.padlock-btn:hover {
+  color: var(--color-ink);
+  background: var(--color-paper);
+}
+
+.padlock-btn.is-primary:hover {
+  color: var(--color-ink);
+  background: var(--color-paper);
 }
 
 .padlock-btn:active {
-  transform: translateY(0.08em);
-  filter: brightness(0.9);
+  translate: 0.1em 0.1em;
+  box-shadow: none;
 }
 
 .padlock-btn:focus-visible,
 .wheel-arrow:focus-visible {
-  outline: 2px solid #f2c14e;
+  outline: 3px solid var(--color-paper);
   outline-offset: 2px;
 }
 
 .padlock-hint {
   margin: 0;
-  font-family: system-ui, sans-serif;
-  font-size: 12px;
-  color: rgba(232, 226, 208, 0.55);
+  font-family: var(--font-display);
+  font-size: 13px;
+  font-style: italic;
+  color: rgba(239, 228, 198, 0.7);
 }
 
 .padlock-hint kbd {
   display: inline-block;
   min-width: 1.6em;
-  padding: 0.1em 0.4em;
-  border: 1px solid rgba(232, 226, 208, 0.3);
-  border-radius: 4px;
-  font: inherit;
+  padding: 0.05em 0.4em;
+  border: var(--line) solid var(--color-paper-shade);
+  font: 700 12px/1.4 var(--font-display);
+  font-style: normal;
   text-align: center;
-  color: rgba(232, 226, 208, 0.8);
+  color: var(--color-paper);
+  background: var(--color-ink);
 }
 
 @keyframes padlock-in {

@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react'
 import { useFrame, useThree } from '@react-three/fiber'
-import { Group, PointLight } from 'three/webgpu'
+import { Group, PointLight, Vector3 } from 'three/webgpu'
 import { sfx } from '../audio/sfx'
 import { on } from '../events'
 import { useRoom } from '../room/RoomScene'
@@ -9,6 +9,8 @@ import { runtime } from '../runtime'
 import type { WispState } from '../runtime'
 import { useGame } from '../store'
 import { tuning } from '../tuning'
+import { createCloth, stepCloth } from './sheetCloth'
+import type { SheetCloth } from './sheetCloth'
 import { createBrain, startDissolve, stepBrain } from './wispBrain'
 import type { WispBrain } from './wispBrain'
 import { createWispMaterial } from './wispMaterial'
@@ -16,9 +18,13 @@ import type { WispMaterial } from './wispMaterial'
 
 const LIGHT_COLOR = 0x8fffd6
 const LIGHT_DISTANCE = 3.5
+const UP = new Vector3(0, 1, 0)
+const _local = new Vector3()
 
 interface Live {
   brain: WispBrain
+  cloth: SheetCloth
+  yaw: number // the eyes (+Z of the mesh) turn toward the player
   group: Group
   light: PointLight
   look: WispMaterial
@@ -45,7 +51,7 @@ export function Wisp() {
     mesh.position.set(0, 0, 0) // the group carries the position
     mesh.castShadow = false
     mesh.receiveShadow = false
-    mesh.frustumCulled = false // the vertex wobble moves it outside its bounds
+    mesh.frustumCulled = false // the cloth moves outside the mesh's bounds
     mesh.renderOrder = 10
 
     // The light stays in the scene after the Wisp is gone (at zero intensity):
@@ -59,7 +65,7 @@ export function Wisp() {
     scene.add(group)
 
     const brain = createBrain(spawn)
-    live.current = { brain, group, light, look, whisper: -1 }
+    live.current = { brain, cloth: createCloth(spawn), yaw: 0, group, light, look, whisper: -1 }
     runtime.wisp.object = mesh
     runtime.wisp.position.copy(spawn)
     runtime.wisp.speed = 0
@@ -91,7 +97,7 @@ export function Wisp() {
   useFrame((_, delta) => {
     const w = live.current
     if (!w) return
-    const { brain, group, light, look } = w
+    const { brain, cloth, group, light, look } = w
     const game = useGame.getState()
     if (game.paused || game.uiLock || brain.state === 'gone') return
 
@@ -103,7 +109,34 @@ export function Wisp() {
     })
 
     group.position.copy(brain.position).add(brain.offset)
+
+    // Turn to face the player, taking the short way round.
+    const player = runtime.player.position
+    const want = Math.atan2(player.x - group.position.x, player.z - group.position.z)
+    const turn = Math.atan2(Math.sin(want - w.yaw), Math.cos(want - w.yaw))
+    w.yaw += turn * Math.min(1, tuning.sheetTurnRate * dt)
+    group.rotation.y = w.yaw
+
+    // The cloth trails the head. The springs run in world space; the material
+    // wants the result in the mesh's own (turned) space.
+    stepCloth(cloth, group.position, dt)
     const u = look.uniforms
+    const lags = [u.lag1, u.lag2, u.lag3]
+    for (let i = 0; i < lags.length; i++)
+      lags[i].value.copy(_local.copy(cloth.offsets[i]).applyAxisAngle(UP, -w.yaw))
+    // Sinking lifts the hem and fills the skirt; rising pulls it in.
+    const fill = Math.max(-0.12, Math.min(0.35, cloth.offsets[2].y * tuning.sheetBillow))
+    u.billow.value = fill + 0.025 * Math.sin(u.time.value * 1.6)
+    u.flutter.value =
+      tuning.sheetFlutter * (1 + brain.speed * tuning.sheetFlutterSpeed) +
+      (brain.state === 'freeze' ? tuning.sheetFreezeShiver : 0)
+    u.opacity.value = tuning.sheetOpacity
+    u.foldDepth.value = tuning.sheetFoldDepth
+    u.press.value = tuning.sheetPress
+    // The arms float a little, and go up when it is caught in the light.
+    u.armReach.value = tuning.sheetArmReach
+    u.armLift.value =
+      tuning.sheetArmLift * (1 + 0.12 * Math.sin(u.time.value * 1.9) + 0.35 * brain.exposure)
     u.time.value += dt
     u.exposure.value = brain.exposure
     u.dissolve.value = brain.dissolve

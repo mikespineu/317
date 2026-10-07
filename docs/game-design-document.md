@@ -71,32 +71,34 @@ The game is played in first person, on desktop and on phones and tablets held in
 | Look | Mouse, with pointer lock | Drag on the right half of the screen |
 | Move | W A S D | Virtual joystick under the left thumb |
 | Interact, pick up | E, or click a highlighted object | Contextual button, or tap the object |
+| Grab, throw a prop | E or click on a throwable prop to grab it; E or click again to throw | Interact button or tap, then again to throw |
 | Light on / off | F | Light button |
 | Switch white / UV light | Q | White / UV button |
 | Swap battery | R | Battery button |
-| Raise camera, take photo | Right mouse to raise, left click to shoot | Camera button to raise, shutter button to shoot |
+| Photo mode on / off, take photo | P or right mouse to toggle, left click to shoot, Esc to leave | Camera button to toggle, shutter button to shoot |
 | Inventory | Tab | Bag button |
 | Journal and hints | J | Journal button |
 
 **Mobile notes**
 
-- The game goes fullscreen on start and locks to landscape where the browser allows it; otherwise it shows the rotate prompt.
+- The game does not request fullscreen. In portrait it shows the rotate prompt and pauses.
 - Buttons sit within thumb reach on both sides and never cover the centre of the view.
 - A light aim assist helps frame ghosts with the camera on touch screens.
 - A lighter graphics preset is picked automatically on phones.
 
 ## Lights
 
-The player starts with a white flashlight only; the UV lamp is found in Room 2 and changes how every room can be read, including Room 1.
+The player starts in the dark and finds the white flashlight on the floor near the start; the UV lamp is found in Room 2 and changes how every room can be read, including Room 1.
 
 | Light | Found in | Reveals | Effect on ghosts | Power |
 | --- | --- | --- | --- | --- |
-| White flashlight | Room 1, at the start | The room itself: objects, normal text, shadows | Most ghosts flinch and freeze briefly, which is the photo window | Shared battery: one pack lasts 90 s |
+| White flashlight | Room 1, on the floor near the start | The room itself: objects, normal text, shadows | Most ghosts flinch and freeze briefly, which is the photo window | Shared battery: one pack lasts 90 s |
 | UV lamp | Room 2 | Invisible ink, footprints, handprints, hidden symbols, Ink Ghosts | Shy Ghosts don't flee from it; Ink Ghosts become visible | Shared battery: one pack lasts 45 s |
 
 **Rules**
 
-- **The light can be switched on and off.** When it's off, the room is almost black, with only faint moonlight and a few glowing objects, and the battery doesn't drain.
+- **The light can be switched on and off.** When it's off, the room is dark, lit only by faint moonlight with indigo shadows and a few glowing objects, and the battery doesn't drain.
+- **Until the flashlight is picked up**, F, Q and R do nothing and the battery display and light buttons are hidden. A guide label tells the player to find it on the floor. When the battery is low or dead, the guide tells them to find a battery pack and press R to charge. Once they have had the flashlight for a while without finding the painting's code, it suggests switching to UV with Q and sweeping the walls; while UV is on it says to sweep slowly.
 - One light type is active at a time, white or UV. A single key switches between them, with a short switch delay.
 - Hidden content is revealed only inside the UV cone, not room-wide. Players have to sweep the light to find it.
 - **One battery powers both lights.** A battery pack lasts 90 seconds of white light or 45 seconds of UV, so UV drains twice as fast.
@@ -382,10 +384,11 @@ The look is spooky-cosy rather than horror: dark rooms, warm light, ghosts that 
 
 **Visuals**
 
-- Stylised, readable props with baked lighting; darkness does most of the mood work.
+- A woodblock-print look (ukiyo-e at night): ink outlines, flat colour in a few tone steps, a limited palette and paper grain. Darkness still does most of the mood work. Details in Level 0 below.
 - Colour language: warm yellow for the flashlight, cool violet for UV, pale cyan-green for ghosts.
 - Each room has one signature object that sells it at a glance: the grandfather clock, the piano, the cracked mirror.
 - UI kept minimal and diegetic where possible: the camera viewfinder, a paper journal.
+- Every overlay shares the print style: paper panels for things to read, ink panels for the always-on HUD, vermilion seals for keys and warnings, hard offset shadows, no blur or glow.
 
 **Audio**
 
@@ -398,13 +401,16 @@ The look is spooky-cosy rather than horror: dark rooms, warm light, ghosts that 
 
 Level 0 is one small test room, outside the story, used to lock down how the game feels and looks before any real room is designed. It is done when the light, the camera and one ghost feel good on a laptop and on a phone in landscape.
 
-**The room:** a small study at night. A window with moonlight, a desk with a padlocked drawer, a bookshelf, a wall mirror, a painting, a door. Three or four props are enough; placeholders are fine at first.
+**The room:** a small study at night. A window with moonlight, a desk with a padlocked drawer, a bookshelf, a wall mirror, a painting, a door. Three or four props are enough; placeholders are fine at first. The flashlight starts on the floor ahead of the spawn, the books on the shelf can be grabbed and thrown, and the candle on the desk can be lit and blown out (E or click) for a small warm light that works without the flashlight.
+
+**Goals shown to the player** (title screen and the first "click to play" card): find the way out of the room, and photograph the ghosts to prove they exist.
 
 **Mechanics in scope**
 
 - First-person movement and look, desktop and touch (landscape), with a rotate prompt in portrait.
-- Light on/off, white/UV switch, battery drain with the four levels and flicker, one battery pack to pick up.
+- Pick up the flashlight from the floor. Then light on/off, white/UV switch, battery drain with the four levels and flicker, battery packs to pick up and swap.
 - Interaction: highlight, prompt, pick up, a simple item bar.
+- Throwable props: grab a book, carry it, throw it. A prop is marked `throwable: true` in the room definition; books are the first.
 - A three-link mini chain: UV writing on the painting shows a code, the code opens the desk drawer, the drawer holds the key, the key opens the door.
 - One reflection test in the mirror.
 - Camera: raise, shoot, score the photo, show it.
@@ -425,8 +431,11 @@ Level 0 is one small test room, outside the story, used to lock down how the gam
 | Photo | Flash, short freeze frame, shutter sound, photo card |
 | Atmosphere | Moonlight through the window, light fog, darkness when the light is off |
 | Post-processing | Bloom, vignette, film grain, colour grade |
+| Print look | Ink outlines from depth, flat tone bands, indigo shadow lift, paper grain; brightness lift so the unlit room stays readable |
 
-**Look to decide in Level 0:** miniature diorama (decided). In first person the miniature feel comes from materials and proportions rather than camera tricks: painted wood, card, felt and clay-like surfaces, chunky shapes, slightly oversized details, visible seams, soft light. Outside the first-person view it can go further: the room summary and the mansion map show each room as a dollhouse cutaway with a tilt-shift blur.
+**Look: woodblock print, ukiyo-e at night (decided Oct 7, 2026; replaces the earlier miniature diorama).** The moodboard was anime cel frames, sumi-e ink manga and ukiyo-e prints. What they share, and what carries the look: uniform ink outlines, flat colour stepped into a few tones instead of smooth shading, a tight palette (ink, indigo, paper cream, a vermilion seal, saffron) and visible paper grain. The night ukiyo-e print (indigo sky, pale moon, warm accents) is the closest match to the room: cool moonlight, warm flashlight, violet UV, pale cyan-green ghost.
+
+It is built in post-processing, not in the materials, so every system that patches materials (UV reveal, highlight, mirror, ghost) keeps working. The chain is: tone mapping, grade, brightness lift, tone bands, indigo shadows, ink outlines, paper grain, vignette. Each step is a toggle in the debug panel and its strength a tuning value. Room assets are flat colours in the palette; see the Blender asset spec. Outside the first-person view the room summary and mansion map can be printed plans rather than dollhouse cutaways; decide when the map is designed.
 
 **Blender assets for Level 0**
 
@@ -437,7 +446,7 @@ Coding starts with grey boxes, so modelling runs in parallel and never blocks it
 - [ ] Smooth on a mid-range laptop and an iPhone 15 Pro in landscape
 - [ ] Finding the code with UV and opening the door feels satisfying
 - [ ] Catching the Wisp feels good with mouse and with touch
-- [ ] The style is chosen and documented for the real rooms
+- [ ] The style is chosen and documented for the real rooms (chosen: woodblock print; values still to settle on device)
 
 ## Roadmap
 

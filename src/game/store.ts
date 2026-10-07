@@ -40,6 +40,7 @@ export function levelOf(charge: number): BatteryLevel {
 // charge is runtime.battery.charge, and batteryLevel here follows it.
 export interface GameState {
   // light
+  hasLight: boolean // the flashlight has been picked up
   lightOn: boolean
   lightMode: LightMode
   switching: boolean // short delay while swapping modes, light is off
@@ -56,6 +57,7 @@ export interface GameState {
 
   // interaction
   focus: string | null // node name under the crosshair
+  held: string | null // node name of the prop in the player's hands
   uiLock: UiLock
   paused: boolean // pointer lock lost on desktop, or portrait on a phone
 
@@ -80,6 +82,7 @@ export interface GameState {
   addClue(id: string): void
   setPickedUp(node: string, value: boolean): void
   setFocus(node: string | null): void
+  setHeld(node: string | null): void
   setUiLock(lock: UiLock): void
   setPaused(paused: boolean): void
   setCameraRaised(raised: boolean): void
@@ -92,7 +95,8 @@ export interface GameState {
 // Everything a level restart puts back. Environment fields (backend, touch,
 // paused) are left alone.
 const initialLevelState = () => ({
-  lightOn: true,
+  hasLight: false,
+  lightOn: false,
   lightMode: 'white' as LightMode,
   switching: false,
   batteryLevel: levelOf(tuning.startCharge),
@@ -103,6 +107,7 @@ const initialLevelState = () => ({
   clues: [] as string[],
   pickedUp: {} as Record<string, boolean>,
   focus: null,
+  held: null,
   uiLock: null,
   cameraRaised: false,
   photos: [] as Photo[],
@@ -117,10 +122,12 @@ export const useGame = create<GameState>((set, get) => ({
   touch: false,
   epoch: 0,
 
-  toggleLight: () => set((s) => ({ lightOn: !s.lightOn })),
+  toggleLight: () => {
+    if (get().hasLight) set((s) => ({ lightOn: !s.lightOn }))
+  },
 
   toggleMode: () => {
-    if (get().switching) return
+    if (!get().hasLight || get().switching) return
     const { epoch } = get()
     set({ switching: true })
     setTimeout(() => {
@@ -134,7 +141,7 @@ export const useGame = create<GameState>((set, get) => ({
 
   swapBattery: () => {
     const { spares, swapping, epoch } = get()
-    if (swapping || spares <= 0) return
+    if (!get().hasLight || swapping || spares <= 0) return
     set({ swapping: true })
     setTimeout(() => {
       if (get().epoch !== epoch) return // the level was reset meanwhile
@@ -145,13 +152,14 @@ export const useGame = create<GameState>((set, get) => ({
 
   setBatteryLevel: (batteryLevel) => set({ batteryLevel }),
 
-  // Battery packs count as spares; everything else is a plain item.
+  // The flashlight and battery packs are not inventory items: picking up the
+  // flashlight puts it in the hand, already lit. Everything else is a plain item.
   addItem: (id) =>
-    set((s) =>
-      id === 'battery'
-        ? { spares: s.spares + 1 }
-        : { items: { ...s.items, [id]: (s.items[id] ?? 0) + 1 } },
-    ),
+    set((s) => {
+      if (id === 'flashlight') return { hasLight: true, lightOn: true }
+      if (id === 'battery') return { spares: s.spares + 1 }
+      return { items: { ...s.items, [id]: (s.items[id] ?? 0) + 1 } }
+    }),
   removeItem: (id) =>
     set((s) => ({ items: { ...s.items, [id]: Math.max(0, (s.items[id] ?? 0) - 1) } })),
   setFlag: (id, value = true) => set((s) => ({ flags: { ...s.flags, [id]: value } })),
@@ -161,6 +169,7 @@ export const useGame = create<GameState>((set, get) => ({
   setFocus: (focus) => {
     if (get().focus !== focus) set({ focus })
   },
+  setHeld: (held) => set({ held }),
   setUiLock: (uiLock) => set({ uiLock }),
   setPaused: (paused) => {
     if (get().paused !== paused) set({ paused })

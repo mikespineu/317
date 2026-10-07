@@ -6,9 +6,10 @@ import type { RoomDef } from './level0.def'
 export interface BoundRoom {
   scene: Object3D
   nodes: Map<string, Object3D> // every named node, including detached ghosts
-  interactables: Map<string, Object3D> // Interact_*
+  interactables: Map<string, Object3D> // Interact_*, and any node the definition lists
   pickups: Map<string, Object3D> // Pickup_*
-  raycastTargets: Object3D[] // interactables + pickups, for the interaction ray
+  props: Map<string, Object3D> // throwable props named in the definition
+  raycastTargets: Object3D[] // interactables + pickups + throwable props, for the interaction ray
   occluders: Mesh[] // solid scenery, for line-of-sight raycasts
   colliders: Aabb[] // Collider_* as world-space XZ boxes
   spawns: Map<string, Vector3> // Spawn_* world positions
@@ -27,6 +28,7 @@ function requiredNodes(def: RoomDef) {
     if ('lock' in i) names.add(i.lock.mesh)
   }
   for (const p of def.pickups) names.add(p.node)
+  for (const p of def.props) names.add(p.node)
   for (const g of def.ghosts) names.add(g.mesh).add(g.spawn)
   return names
 }
@@ -42,6 +44,7 @@ export function bindNodes(scene: Object3D, def: RoomDef): BoundRoom {
     nodes: new Map(),
     interactables: new Map(),
     pickups: new Map(),
+    props: new Map(),
     raycastTargets: [],
     occluders: [],
     colliders: [],
@@ -50,6 +53,8 @@ export function bindNodes(scene: Object3D, def: RoomDef): BoundRoom {
     ghosts: new Map(),
   }
   const ghostNames = new Set<string>(def.ghosts.map((g) => g.mesh))
+  const interactNames = new Set<string>(def.interactables.map((i) => i.node))
+  const throwables = new Set<string>(def.props.filter((p) => p.throwable).map((p) => p.node))
   const detach: Object3D[] = []
   const box = new Box3()
 
@@ -68,6 +73,8 @@ export function bindNodes(scene: Object3D, def: RoomDef): BoundRoom {
           maxX: box.max.x,
           minZ: box.min.z,
           maxZ: box.max.z,
+          minY: box.min.y,
+          maxY: box.max.y,
         })
       }
       detach.push(node)
@@ -87,8 +94,10 @@ export function bindNodes(scene: Object3D, def: RoomDef): BoundRoom {
     // Name_1, Name_2...: those are parts of the node, not nodes of their own.
     const parentName = node.parent?.name ?? ''
     const part = name.startsWith(parentName) && /^_\d+$/.test(name.slice(parentName.length))
-    if (!part && name.startsWith('Interact_')) room.interactables.set(name, node)
+    if (!part && (name.startsWith('Interact_') || interactNames.has(name)))
+      room.interactables.set(name, node)
     if (!part && name.startsWith('Pickup_')) room.pickups.set(name, node)
+    if (!part && throwables.has(name)) room.props.set(name, node)
     if (!mesh) return
 
     if (name === def.mirror.node) {
@@ -102,7 +111,11 @@ export function bindNodes(scene: Object3D, def: RoomDef): BoundRoom {
 
   // Colliders are never rendered or raycast; ghosts are driven by their own component.
   for (const node of detach) node.removeFromParent()
-  room.raycastTargets = [...room.interactables.values(), ...room.pickups.values()]
+  room.raycastTargets = [
+    ...room.interactables.values(),
+    ...room.pickups.values(),
+    ...room.props.values(),
+  ]
 
   const missing = [...requiredNodes(def)].filter((name) => !room.nodes.has(name))
   if (missing.length > 0) {
@@ -116,6 +129,7 @@ export function bindNodes(scene: Object3D, def: RoomDef): BoundRoom {
     console.info(`[room] bound "${def.id}"`, {
       interactables: [...room.interactables.keys()],
       pickups: [...room.pickups.keys()],
+      props: [...room.props.keys()],
       colliders: room.colliders.map((c) => c.name),
       spawns: [...room.spawns.keys()],
       mirror: room.mirror?.name ?? null,

@@ -93,21 +93,58 @@ export const tuning = {
   wispDissolveSeconds: 1,
   wispWanderSpeed: 0.35, // rate of travel along the noise path
   wispFleeSpeed: 2.4, // m/s
+  wispFleePush: 0.3, // seconds to reach flee speed
   wispFollow: 2.5, // how tightly it tracks its wander target, 1/s
   wispMargin: 0.45, // inner box: metres kept off the walls
   wispMinY: 1.0,
   wispMaxY: 2.1,
   wispBob: 0.06, // metres
-  wispTremble: 0.012, // metres, while frozen
+  wispTremble: 0.003, // metres the head shivers while frozen; the cloth does the rest
   wispExposureRise: 2.5, // per second while lit
   wispExposureDecay: 0.8, // per second in the dark
-  wispGlow: 1.0, // base brightness of the material
-  wispExposureGlow: 1.4, // extra brightness at full exposure
+  wispGlow: 0.5, // base brightness of the material
+  wispExposureGlow: 0.25, // extra brightness at full exposure
   wispLight: 0.35, // point light intensity, 0 = none
   wispWhisperDist: 4.5, // metres at which the whisper fades out
   wispMaxDrift: 0.9, // m/s cap while wandering
   wispRoomHalfX: 2.0, // room interior half-size, until the room def carries bounds
   wispRoomHalfZ: 2.5,
+  // wisp: the sheet
+  sheetStiffness: 42, // spring pulling the cloth after the head, 1/s²
+  sheetDamping: 0.3, // damping ratio; below 1 the cloth swings past and settles
+  sheetMaxLag: 0.26, // metres the hem may trail behind the head
+  sheetPress: 0.2, // share of that movement the leading side makes, pressed on the body
+  sheetArmReach: 1.0, // how far the arms hold the cloth out, as a fraction of the radius
+  sheetArmLift: 0.15, // metres the arms raise the cloth
+  sheetFoldDepth: 0.24, // depth of the pleats at the hem, as a fraction of the radius
+  sheetFlutter: 0.018, // ripple in the hem at rest
+  sheetFlutterSpeed: 1.6, // extra ripple per m/s
+  sheetFreezeShiver: 0.03, // extra ripple while frozen in the light
+  sheetBillow: 2.2, // how much sinking fills the skirt
+  sheetTurnRate: 3, // how fast it turns to face the player, 1/s
+  sheetOpacity: 0.96,
+
+  // candle
+  candleLight: 3, // candela when lit
+  candleDistance: 4.5, // m, where its light fades out
+
+  // hints
+  uvHintDelay: 20, // s after the flashlight is found before the UV hint appears
+
+  // props (throwable)
+  holdDistance: 0.75, // m in front of the eye
+  holdRight: 0.22, // m to the right of the view centre
+  holdDown: 0.2, // m below the view centre
+  holdFollow: 16, // 1/s, how tightly the held prop trails the view
+  throwSpeed: 6.5, // m/s
+  throwLift: 0.9, // m/s added upward so a level throw arcs
+  throwSpin: 9, // rad/s
+  propGravity: 9.8,
+  propBounce: 0.32, // share of the normal speed kept after a hit
+  propFriction: 0.18, // share of the sliding speed lost per hit
+  propSlide: 3, // 1/s, how fast a prop slides to a stop on the ground
+  propRestSpeed: 0.35, // m/s below which a prop on the ground settles
+  propCeiling: 2.8, // m, until the room def carries bounds
 
   // camera
   photoCooldown: 0.8,
@@ -125,7 +162,7 @@ export const tuning = {
   photoFramedRadius: 0.7, // NDC distance from centre that scores 0
   photoCloseFraction: 0.4, // screen height filled that scores 1
   photoSharpSpeed: 1.5, // m/s that scores 0
-  ghostHeight: 0.5, // metres, for the on-screen size
+  ghostHeight: 0.63, // metres, for the on-screen size
 
   // mirror
   mirrorUpdateEvery: 1, // 2 = refresh the reflection every other frame
@@ -134,14 +171,14 @@ export const tuning = {
   mirrorWordOpacity: 0.55,
 
   // atmosphere
-  backgroundColor: '#05050a',
+  backgroundColor: '#0a0c20',
   moonColor: '#7f9cff',
-  moonIntensity: 0.22,
+  moonIntensity: 0.4,
   ambientColor: '#6f7fb8',
-  ambientIntensity: 0.04,
-  fogColor: '#0a0d18',
+  ambientIntensity: 0.12,
+  fogColor: '#131a38',
   fogDensity: 0.05,
-  moonPatchOpacity: 0.1, // additive glow of the window's shape on the floor
+  moonPatchOpacity: 0.18, // additive glow of the window's shape on the floor
 
   // post
   bloomStrength: 0.55,
@@ -151,6 +188,14 @@ export const tuning = {
   vignetteStart: 0.3, // distance from screen centre where darkening begins
   grainStrength: 0.035,
   gradeStrength: 0.6, // 0 = untouched, 1 = full plum shadows / warm highlights
+  inkWidth: 1.2, // outline thickness, CSS px
+  inkThreshold: 0.012, // depth-curvature that starts a line; lower = more lines
+  inkStrength: 0.9, // 1 = lines fully ink-black
+  nightGamma: 0.6, // brightness curve before banding; 1 = off, lower = brighter shadows
+  bandCount: 6, // flat tones the brightness is snapped to
+  bandStrength: 0.7, // 0 = smooth shading, 1 = fully banded
+  indigoLift: 0.85, // how far blacks are lifted to indigo
+  paperStrength: 0.14, // paper fibre darkening
 
   // audio
   masterVolume: 0.6,

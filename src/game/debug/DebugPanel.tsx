@@ -64,6 +64,7 @@ const CHAIN: [label: string, run: () => void][] = [
 ]
 
 function skipTo(step: number) {
+  if (!useGame.getState().hasLight) useGame.getState().addItem('flashlight')
   for (let i = 0; i <= step; i++) CHAIN[i][1]()
 }
 
@@ -139,7 +140,8 @@ const GROUPS: [name: string, match: RegExp][] = [
   ['wisp', /^(wisp|ghost)/],
   ['camera', /^(photo|camera|aimAssist|shutter)/],
   ['mirror', /^mirror/],
-  ['post', /^(bloom|vignette|grain|grade)/],
+  ['props', /^(throw|prop|hold)/],
+  ['post', /^(bloom|vignette|grain|grade|ink|night|band|indigo|paper)/],
   ['audio', /(Volume|Gain)$|^(creak|audio|master)/],
   ['atmosphere', /^(moon|ambient|fog|background)/],
   ['battery', /Drain|Charge|^(level|swap|emergency|modeSwitch|lowTick|battery)/],
@@ -147,7 +149,7 @@ const GROUPS: [name: string, match: RegExp][] = [
   ['interaction', /^(reach|drawer|door|padlock|message|complete|highlight|interact|pickup)/],
   [
     'light',
-    /^(white|uv|light|shadow|held|flicker|sputter|emptyGlow|lowStrength|strengthCurve|cone|dust|reveal|clue|beam)/,
+    /^(white|uv|light|candle|shadow|held|flicker|sputter|emptyGlow|lowStrength|strengthCurve|cone|dust|reveal|clue|beam)/,
   ],
 ]
 

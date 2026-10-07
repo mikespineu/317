@@ -13,13 +13,14 @@ This file is the coding plan. The Blender spec owns sizes, names and export rule
 **In scope**
 
 - First-person movement and look: desktop (pointer lock + WASD) and touch (joystick + drag), landscape only, rotate prompt in portrait.
-- Flashlight: on/off, white/UV switch, shared battery with four levels, flicker, sputter, one pickup pack, swap.
+- Flashlight: starts on the floor and is picked up first. Then on/off, white/UV switch, shared battery with four levels, flicker, sputter, pickup packs, swap.
 - Interaction: centre raycast, highlight, prompt, pick up, item bar.
 - Mini chain: UV code on the painting → padlock on the desk drawer → key in the drawer → door.
 - Mirror reflection test.
 - Camera: raise, shoot, score, show a photo card.
 - One Wisp: floats, freezes in light, dissolves when photographed.
-- Atmosphere and post-processing.
+- Throwable props: the books can be grabbed and thrown.
+- Atmosphere and post-processing, including the woodblock-print look (decided Oct 7, 2026; see the GDD).
 - Debug panel and performance overlay.
 
 **Out of scope:** login, Supabase, saving, journal, leaderboards, the JSON room loader. Logic is hand-written but shaped like the room definition so it can move to data later.
@@ -29,7 +30,7 @@ This file is the coding plan. The Blender spec owns sizes, names and export rule
 - [ ] Smooth on a mid-range laptop and an iPhone 15 Pro in landscape (targets in §12)
 - [ ] Finding the code with UV and opening the door feels satisfying
 - [ ] Catching the Wisp feels good with mouse and with touch
-- [ ] The style is chosen and documented for the real rooms
+- [ ] The style is chosen and documented for the real rooms (chosen: woodblock print; values still to settle on device)
 
 ---
 
@@ -41,9 +42,9 @@ This file is the coding plan. The Blender spec owns sizes, names and export rule
 | 3D | three.js + React Three Fiber v9 + drei | |
 | Renderer | `WebGPURenderer` from `three/webgpu` | Same renderer falls back to WebGL 2 (`forceWebGL`) |
 | Shaders | TSL (`three/tsl`) node materials | Works on both backends; plain `ShaderMaterial` does not run on `WebGPURenderer` |
-| Post-processing | three's `PostProcessing` + TSL nodes (bloom, etc.) | The pmndrs `postprocessing` library targets `WebGLRenderer` only |
+| Post-processing | three's `PostProcessing` + TSL nodes (bloom, ink outlines, tone bands, paper grain) | The pmndrs `postprocessing` library targets `WebGLRenderer` only |
 | State | zustand | One store, plain objects, easy to serialise later |
-| Collision | Hand-written circle-vs-box on the XZ plane | Floor is flat; `Collider_` boxes from the .glb are enough. No physics engine |
+| Collision | Hand-written circle-vs-box on the XZ plane for the player; a small sphere-vs-box step for thrown props | Floor is flat; `Collider_` boxes from the .glb are enough. No physics engine |
 | Debug | leva panel, own stats readout from `renderer.info` | Only with `?debug` in the URL; works in dev and production builds, phone included |
 | Assets | `.glb` from Blender, compressed in the build step | gltf-transform: meshopt + KTX2 later |
 
@@ -59,10 +60,11 @@ src/
     play.tsx                     # exists: ClientOnly + lazy(Game)
   game/
     Game.tsx                     # exists: Canvas, WebGPU renderer, extend(THREE)
-    Level0.tsx                   # exists (placeholder boxes): scene composition
+    Level0.tsx                   # scene composition
     renderer/
       createRenderer.ts          # WebGPU with WebGL fallback, quality presets
-      postprocessing.ts          # bloom, vignette, grain, colour grade
+      postprocessing.ts          # bloom, vignette, grain, colour grade, print look
+      ukiyo.ts                   # ink outlines, tone bands, indigo shadows, paper grain (TSL)
       quality.ts                 # preset detection (desktop / phone)
     room/
       level0.def.ts              # hand-written room definition (JSON-shaped)
@@ -83,6 +85,9 @@ src/
       useInteractionRay.ts       # centre raycast, focus target
       Highlight.tsx
       actions.ts                 # what each interactable does
+    props/
+      Props.tsx                  # runs prop physics each frame
+      propPhysics.ts             # grab, carry, throw, settle: sphere vs collider boxes
     puzzle/
       PadlockUI.tsx
       chain.ts                   # flags and conditions for the Level 0 chain
@@ -97,7 +102,7 @@ src/
     mirror/
       Mirror.tsx                 # TSL reflector on Mirror_Surface
     ui/
-      Hud.tsx                    # battery, item bar, prompt, crosshair
+      Hud.tsx                    # battery, item bar, prompt, guide label, crosshair
       PhotoCard.tsx
       RotatePrompt.tsx
     audio/
@@ -126,6 +131,7 @@ The code finds everything by object name. Names are the contract; if a name chan
 | --- | --- |
 | `Interact_*` | Raycastable; gets a highlight and a prompt; action looked up by name in `actions.ts` |
 | `Pickup_*` | Raycastable; on use, hidden in the scene and added to the inventory |
+| Names listed in the definition's `props` (`Book_*`) | Raycastable when `throwable: true`; grab, carry and throw with `props/propPhysics.ts` |
 | `Collider_*` | Hidden (`visible = false`), turned into an XZ AABB for the player, never rendered or raycast |
 | `Mirror_Surface` | Material replaced by the reflector |
 | `Spawn_*` | Empties; positions only (`Spawn_Player`, `Spawn_Wisp`, and later `Spawn_Wisp_Path_*`) |
@@ -141,7 +147,8 @@ Collider_Wall_N            Collider_Wall_E            Collider_Wall_W
 Collider_Wall_S_E          Collider_Wall_S_W          Collider_Door
 Collider_Desk              Collider_Bookshelf         Collider_Chair
 Collider_Floor             Collider_Ceiling
-Desk_Padlock (scenery)     + walls, furniture, props
+Book_1 .. Book_4 (props)    Desk_Padlock (scenery)
++ walls, furniture, props
 ```
 
 Notes on these:
@@ -150,6 +157,9 @@ Notes on these:
 - The south wall is split around the door (`Collider_Wall_S_E` / `_S_W`); the gap is filled by `Collider_Door` until the door opens.
 - `Collider_Floor` and `Collider_Ceiling` are skipped by the XZ player collision (they would cover the whole room); they can still be used by raycasts later.
 - `Wisp` is the ghost mesh. The code takes it out of the room scene and drives it from `Spawn_Wisp`.
+- `Pickup_Flashlight` is not in the .glb. A pickup with a `model` in the definition is loaded and placed by `RoomScene` (`addModelPickups`) before binding, so it binds like any other. If the model fails to load it becomes a box.
+- An interactable can also be named by the definition instead of an `Interact_` prefix (`Prop_Candle`, type `candle`); `bindNodes` binds both. `light/Candle.tsx` draws the flame (a pinched sphere in an additive node material, bright enough for bloom) and a warm point light that flickers, faded in and out by the `candle-lit` flag. The light stays in the scene and is switched through intensity, because toggling visibility rebuilds lit materials.
+- Props are bound by the names in the definition, not by prefix. They must be exported axis-aligned: the physics sizes them from the bounding box.
 
 **bindNodes.ts**
 
@@ -183,16 +193,26 @@ export const level0 = {
     { node: 'Interact_Door', type: 'door', requires: 'item:key', openAngleDeg: 95 },
   ],
   pickups: [
+    {
+      node: 'Pickup_Flashlight',
+      item: 'flashlight',
+      model: '/models/level0/flashlight.glb', // not in level-0.glb: placed by the loader
+      at: [0.35, 0.042, 1.15],
+      yawDeg: 35,
+      glow: true,
+    },
     { node: 'Pickup_Battery', item: 'battery' },
     { node: 'Pickup_Key', item: 'key', visibleWhen: 'flag:drawer-open' },
   ],
+  props: [{ node: 'Book_1', label: 'book', throwable: true } /* , Book_2..Book_4 */],
+  // in interactables: { node: 'Prop_Candle', type: 'candle' }  (lit and blown out with E)
   ghosts: [{ id: 'wisp-1', type: 'wisp', mesh: 'Wisp', spawn: 'Spawn_Wisp', baseScore: 100 }],
   mirror: { node: 'Mirror_Surface' },
   exit: { node: 'Interact_Door', requires: 'item:key' },
 } as const
 ```
 
-The code value is a placeholder; any short code works. The shape mirrors the GDD's room definition so the later JSON loader is a swap, not a rewrite.
+The code value is a placeholder; any short code works. `props` lists loose objects; `throwable: true` makes one grabbable and throwable, without it the entry is only a name. The flashlight is not an inventory item: picking it up sets `hasLight` and lights it. The shape mirrors the GDD's room definition so the later JSON loader is a swap, not a rewrite.
 
 ---
 
@@ -204,7 +224,8 @@ type BatteryLevel = 'full' | 'medium' | 'low' | 'empty'
 
 interface GameState {
   // light
-  lightOn: boolean
+  hasLight: boolean           // the flashlight has been picked up; F/Q/R are inert until then
+  lightOn: boolean            // starts false
   lightMode: LightMode
   switching: boolean          // short delay while swapping modes
   charge: number              // 0..1, current pack
@@ -218,6 +239,7 @@ interface GameState {
 
   // interaction
   focus: string | null        // node name under the crosshair
+  held: string | null         // prop in the player's hands
   uiLock: 'padlock' | 'photo' | null
 
   // camera
@@ -258,6 +280,9 @@ All balance numbers in `tuning.ts`, exposed in the leva debug panel (`?debug`, S
 | UV beam | angle 16°, distance 4 m | Narrower, so sweeping matters |
 | Wisp freeze | after 0.4 s in the beam, frozen for 3 s × beam strength | |
 | Photo cooldown | 0.8 s | |
+| Moon / ambient light | 0.4 / 0.12 | Raised from 0.22 / 0.04 once the tone bands made the unlit room black |
+| Print look | ink width 1.2 px, threshold 0.012, strength 0.9; 6 bands at 0.7; night gamma 0.6; indigo lift 0.85; paper 0.14 | To tune on device |
+| Prop throw | 6.5 m/s + 0.9 m/s lift, spin 9 rad/s; held 0.75 m ahead | To tune |
 
 ---
 
@@ -303,7 +328,7 @@ extend(THREE as any)
 | Film grain | on | off |
 
 - **Orientation:** portrait shows `RotatePrompt` and pauses the game. Use `matchMedia('(orientation: portrait)')`.
-- **Fullscreen:** request fullscreen on the first tap where the Fullscreen API exists (desktop, Android). iPhone Safari does not allow element fullscreen or orientation lock, so on iPhone rely on the rotate prompt, `viewport-fit=cover`, safe-area insets for the buttons, and optionally a web app manifest with `"display": "fullscreen"` for home-screen launches. Test this early on the real phone.
+- **Fullscreen:** not requested. It was built first (first tap, plus an Android landscape lock) and removed on Oct 7, 2026 at the owner's request. The rotate prompt, `viewport-fit=cover` and safe-area insets for the buttons cover phones. A web app manifest with `"display": "fullscreen"` remains an option for home-screen launches.
 
 **Check:** a lit greybox room renders on desktop and on the iPhone; the debug panel shows the backend and FPS.
 
@@ -344,7 +369,7 @@ extend(THREE as any)
 - A `SpotLight` and its target, both parented to the camera, slightly offset to the right hand so shadows read.
 - Cookie texture (`spotLight.map`) for the beam pattern: a soft hot centre with a faint ring.
 - `castShadow` on the flashlight only; nothing else casts real-time shadows.
-- Held flashlight model parented to the camera, lens along forward.
+- Held flashlight model parented to the camera, lens along forward. Hidden until the flashlight is picked up: it starts on the floor as `Pickup_Flashlight`, with a faint warm point light so it can be found.
 - Colour: warm yellow (white mode), violet (UV mode). UV mode lights the room only weakly; its job is the reveal.
 
 **battery.ts** (runs in `useFrame`)
@@ -364,9 +389,9 @@ uvUniforms.power    = mode === 'uv' ? strength : 0
 - Store updates only when `level` changes, not every frame.
 - `swapBattery`: if spares > 0, light off for the swap time, then `charge = 1`, `spares -= 1`.
 - Emergency pack: if charge is 0 and no spares for 10 s, `Pickup_Battery` respawns at its spawn (Level 0 stand-in for the GDD rule).
-- Keys: F light, Q mode, R swap.
+- Keys: F light, Q mode, R swap. All three, and the battery HUD and touch light buttons, are inactive until the flashlight is picked up.
 
-**HUD:** a small battery icon with the level and the spare count; it flashes when low.
+**HUD:** a small battery icon with the level and the spare count; it flashes when low. A guide label near the top tells the player to find the flashlight at the start, and when the battery is low or dead to find a pack and press R (or tap the battery button on touch). Until the painting's code is found it also hints at the UV light: after `uvHintDelay` (20 s) it says to press Q for UV and sweep the walls, and while UV is on it says to sweep slowly. Battery warnings take priority.
 
 **Check:** the light visibly changes through all four levels; switching off stops the drain; swapping works and is risky in timing.
 
@@ -386,6 +411,7 @@ uvUniforms.power    = mode === 'uv' ? strength : 0
 - On desktop, E or left click; on touch, the Interact button or tapping the object (raycast from the tap point).
 - `actions.ts` maps node names to actions using the room definition: `code-lock` opens the padlock UI, `drawer` slides, `door` rotates, `Pickup_*` adds an item.
 - Item bar: bottom-centre on desktop, bottom-left above the joystick on touch. Selecting an item uses it on the focused object (key on door).
+- Props: a throwable prop is a ray target like a pickup. E or click grabs it into the lower right of the view; while held, nothing else can be used and the next E or click throws it. Because books are targets, they now block the ray to the battery behind them. Physics (`propPhysics.ts`): a sphere against the collider boxes (which carry Y extents), floor, ceiling and room walls, 120 Hz substeps, bounce and slide damping, then a settle step that lays the prop flat along its smallest axis. No prop-to-prop, prop-to-player or prop-to-Wisp collision.
 
 **Check:** every interactable highlights, prompts and responds; the key can be picked up and used on the door.
 
@@ -480,7 +506,7 @@ material.emissiveNode = glow.mul(reveal).mul(1.5)
 
 **CameraMode.tsx**
 
-- Raise: right mouse (hold or toggle, decide in playtest) / Camera button. The held camera model moves up, the FOV narrows a little (zoom 1.2×), a viewfinder overlay appears (corners, centre mark, battery of the flashlight still visible).
+- Raise: P or right mouse (toggle; hold is still a tuning option) / Camera button. Esc leaves photo mode: the browser consumes the key and drops the pointer lock, so the game lowers the camera when the lock is lost with no modal open (a pause follows, since the lock is gone). The held camera model moves up, the FOV narrows a little (zoom 1.2×), a viewfinder overlay appears (corners, centre mark, battery of the flashlight still visible).
 - Shoot: left click / Shutter button, 0.8 s cooldown. A white flash overlay (150 ms), a shutter sound, a brief freeze frame, then the photo card slides in.
 - Touch aim assist: while raised, if the Wisp is within ~8% of screen width of the centre, gently pull the view toward it.
 
@@ -518,13 +544,14 @@ return Math.round(baseScore * quality)
 **Lighting**
 
 - Moonlight: a cool blue directional light through the window, no shadows (baked later), low intensity.
-- Ambient: almost nothing, so the room is near-black with the flashlight off, with a few faint glows (Wisp, moonlit floor patch).
+- Ambient: low and indigo-tinted (0.12, with the moon at 0.4), so the room is dark but readable with the flashlight off, plus a few faint glows (Wisp, moonlit floor patch). The first pass (0.04 / 0.22) read as black once the tone bands were added.
 - Light fog (exponential, dark blue-grey) for depth in the beam.
 
 **Post-processing** (three `PostProcessing`, TSL)
 
 - Bloom: catches the Wisp, the UV ink and the lens.
 - Vignette, subtle film grain (desktop), a slight colour grade toward plum shadows and warm highlights.
+- The print look (`ukiyo.ts`): a brightness lift (`nightGamma`) so the dark end is not crushed, brightness snapped to flat tone bands, shadows lifted to indigo, depth-based ink outlines, paper grain. The outlines use the second difference of 1/viewZ, which is zero across flat surfaces and jumps at silhouettes and creases.
 - Each effect toggles in leva so the look can be compared on device.
 
 **Audio** (Web Audio, started on the first user gesture)
@@ -535,7 +562,7 @@ return Math.round(baseScore * quality)
 - Positional Wisp whisper (drei `PositionalAudio`).
 - Shutter.
 
-**Check:** with everything on, the room looks like the miniature diorama style guide and still meets the frame budget.
+**Check:** with everything on, the room reads as a woodblock print (outlines, flat tones, paper) and still meets the frame budget.
 
 ### Step 13 — Debug tools
 
@@ -651,4 +678,4 @@ Measure with the debug overlay in the worst view: flashlight on, mirror in view,
 - [ ] Mirror cost on the phone: full rate, half rate, or lower resolution?
 - [ ] Wisp freeze length and flee speed: fun or frustrating?
 - [ ] Battery thresholds and the flicker: readable warning or annoying?
-- [ ] The final look: how far to push grain, grade and fog before readability suffers?
+- [ ] The final look: the woodblock print is chosen. Open: outline density (`inkThreshold`), overall brightness (`nightGamma`, ambient) and the number of tone bands, checked on the laptop and the phone.

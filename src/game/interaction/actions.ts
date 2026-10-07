@@ -1,6 +1,7 @@
 import { Vector3 } from 'three/webgpu'
 import { sfx } from '../audio/sfx'
 import { apply, check, consume } from '../puzzle/chain'
+import { grabProp } from '../props/propPhysics'
 import type { BoundRoom } from '../room/bindNodes'
 import { level0 } from '../room/level0.def'
 import { runtime } from '../runtime'
@@ -27,6 +28,11 @@ interface InteractableDef {
   openAngleDeg?: number
   lock?: LockDef
 }
+interface PropDef {
+  node: string
+  label: string
+  throwable?: boolean
+}
 interface PickupDef {
   node: string
   item: string
@@ -35,8 +41,10 @@ interface PickupDef {
 
 const interactables: readonly InteractableDef[] = level0.interactables
 const pickups: readonly PickupDef[] = level0.pickups
+const props: readonly PropDef[] = level0.props
 
 export const INTERACT = 'Interact_'
+export const CANDLE_FLAG = 'candle-lit'
 export const PICKUP = 'Pickup_'
 
 export interface Prompt {
@@ -54,6 +62,7 @@ export function bindRoom(next: BoundRoom | null) {
 
 const findInteractable = (node: string) => interactables.find((i) => i.node === node)
 const findPickup = (node: string) => pickups.find((p) => p.node === node)
+const findProp = (node: string) => props.find((p) => p.node === node && p.throwable)
 
 // A door has no `sets` in the definition, so its open state gets its own flag.
 const openedFlag = (node: string) => `flag:opened:${node}`
@@ -70,6 +79,8 @@ export function promptFor(node: string | null): Prompt | null {
     if (useGame.getState().pickedUp[node] || !check(pickup.visibleWhen)) return null
     return { label: `Pick up ${itemLabel(pickup.item)}`, usable: true }
   }
+  const prop = findProp(node)
+  if (prop) return { label: `Grab ${prop.label}`, usable: true }
   const def = findInteractable(node)
   if (!def) return null
   switch (def.type) {
@@ -79,12 +90,22 @@ export function promptFor(node: string | null): Prompt | null {
     case 'door':
       if (check(openedFlag(node))) return null
       return { label: check(def.requires) ? 'Open door' : 'Locked', usable: true }
+    case 'candle':
+      return {
+        label: useGame.getState().flags[CANDLE_FLAG] ? 'Blow out the candle' : 'Light the candle',
+        usable: true,
+      }
     case 'uv-reveal':
       // A clue surface, not something to use.
       return check(def.gives) ? null : { label: 'Something faint on the canvas', usable: false }
     default:
       return null
   }
+}
+
+// The prompt while a prop is in the player's hands: the next press throws it.
+export function heldPrompt(node: string): Prompt {
+  return { label: `Throw ${findProp(node)?.label ?? 'it'}`, usable: true }
 }
 
 // A short note for the HUD once a clue is known and a lock is still shut.
@@ -117,10 +138,23 @@ export function interactWith(node: string) {
     showMessage(`Picked up: ${itemLabel(pickup.item)}`)
     return
   }
+  if (findProp(node)) {
+    grabProp(node)
+    return
+  }
   const def = findInteractable(node)
   if (!def) return
   if (def.type === 'drawer') operateDrawer(def)
   else if (def.type === 'door') operateDoor(def)
+  else if (def.type === 'candle') toggleCandle()
+}
+
+// The flame and its light follow the flag (light/Candle.tsx).
+function toggleCandle() {
+  const s = useGame.getState()
+  const lit = !!s.flags[CANDLE_FLAG]
+  s.setFlag(CANDLE_FLAG, !lit)
+  sfx.play(lit ? 'candleOut' : 'candleLight')
 }
 
 // An item chosen in the bar acts on whatever is under the crosshair.
