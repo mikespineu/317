@@ -124,6 +124,21 @@ export const tuning = {
   sheetTurnRate: 3, // how fast it turns to face the player, 1/s
   sheetOpacity: 0.96,
 
+  // props (throwable)
+  holdDistance: 0.75, // m in front of the eye
+  holdRight: 0.22, // m to the right of the view centre
+  holdDown: 0.2, // m below the view centre
+  holdFollow: 16, // 1/s, how tightly the held prop trails the view
+  throwSpeed: 6.5, // m/s
+  throwLift: 0.9, // m/s added upward so a level throw arcs
+  throwSpin: 9, // rad/s
+  propGravity: 9.8,
+  propBounce: 0.32, // share of the normal speed kept after a hit
+  propFriction: 0.18, // share of the sliding speed lost per hit
+  propSlide: 3, // 1/s, how fast a prop slides to a stop on the ground
+  propRestSpeed: 0.35, // m/s below which a prop on the ground settles
+  propCeiling: 2.8, // m, until the room def carries bounds
+
   // camera
   photoCooldown: 0.8,
   photoDissolveQuality: 0.5,
@@ -149,14 +164,14 @@ export const tuning = {
   mirrorWordOpacity: 0.55,
 
   // atmosphere
-  backgroundColor: '#05050a',
+  backgroundColor: '#0a0c20',
   moonColor: '#7f9cff',
-  moonIntensity: 0.22,
+  moonIntensity: 0.4,
   ambientColor: '#6f7fb8',
-  ambientIntensity: 0.04,
-  fogColor: '#0a0d18',
+  ambientIntensity: 0.12,
+  fogColor: '#131a38',
   fogDensity: 0.05,
-  moonPatchOpacity: 0.1, // additive glow of the window's shape on the floor
+  moonPatchOpacity: 0.18, // additive glow of the window's shape on the floor
 
   // post
   bloomStrength: 0.55,
@@ -166,6 +181,14 @@ export const tuning = {
   vignetteStart: 0.3, // distance from screen centre where darkening begins
   grainStrength: 0.035,
   gradeStrength: 0.6, // 0 = untouched, 1 = full plum shadows / warm highlights
+  inkWidth: 1.2, // outline thickness, CSS px
+  inkThreshold: 0.012, // depth-curvature that starts a line; lower = more lines
+  inkStrength: 0.9, // 1 = lines fully ink-black
+  nightGamma: 0.6, // brightness curve before banding; 1 = off, lower = brighter shadows
+  bandCount: 6, // flat tones the brightness is snapped to
+  bandStrength: 0.7, // 0 = smooth shading, 1 = fully banded
+  indigoLift: 0.85, // how far blacks are lifted to indigo
+  paperStrength: 0.14, // paper fibre darkening
 
   // audio
   masterVolume: 0.6,

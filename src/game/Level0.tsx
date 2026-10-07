@@ -6,6 +6,7 @@ import { Interaction } from './interaction/Interaction'
 import { Flashlight } from './light/Flashlight'
 import { PaintingReveal } from './light/PaintingReveal'
 import { Mirror } from './mirror/Mirror'
+import { Props } from './props/Props'
 import { PlayerController } from './player/PlayerController'
 import { Atmosphere } from './renderer/Atmosphere'
 import { PostFx } from './renderer/PostFx'
@@ -23,6 +24,7 @@ export function Level0() {
         <Flashlight />
         <PaintingReveal />
         <Interaction />
+        <Props />
         <Mirror />
         <Wisp />
         <CameraMode />

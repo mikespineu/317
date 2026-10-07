@@ -51,7 +51,7 @@ export function PhotoCard() {
 
   return (
     <div className="photo-layer" role="dialog" aria-label="Photograph">
-      <figure className={`photo-card${found ? '' : ' is-empty'}`}>
+      <figure className={`photo-card print-paper${found ? '' : ' is-empty'}`}>
         <div className="photo-print">
           {shot.url ? (
             <img src={shot.url} alt="The photograph you just took" draggable={false} />

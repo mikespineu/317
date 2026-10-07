@@ -159,6 +159,7 @@ export function Flashlight() {
     held.position.set(tuning.heldX, tuning.heldY + sway, tuning.heldZ)
     held.quaternion.copy(aim.quaternion)
     held.scale.setScalar(tuning.heldScale)
+    held.visible = store.hasLight // nothing in the hand until it is picked up
 
     light.color.copy(beamColors[beam.mode])
     light.intensity = beam.intensity

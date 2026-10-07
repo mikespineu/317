@@ -13,6 +13,8 @@ export interface Aabb {
   maxX: number
   minZ: number
   maxZ: number
+  minY: number // props collide in 3D; the player only uses XZ
+  maxY: number
 }
 
 export type WispState = 'wander' | 'freeze' | 'flee' | 'dissolve' | 'gone'

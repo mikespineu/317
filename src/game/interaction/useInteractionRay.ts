@@ -19,11 +19,16 @@ function shown(object: Object3D) {
   return true
 }
 
-// The nearest ancestor that is an interactable or a pickup. Nearest matters:
-// the key is a child of the drawer.
+// The nearest ancestor that is an interactable, a pickup or a throwable prop.
+// Nearest matters: the key is a child of the drawer.
 function ownerOf(room: BoundRoom, object: Object3D): Object3D | null {
   for (let o: Object3D | null = object; o; o = o.parent)
-    if (room.interactables.get(o.name) === o || room.pickups.get(o.name) === o) return o
+    if (
+      room.interactables.get(o.name) === o ||
+      room.pickups.get(o.name) === o ||
+      room.props.get(o.name) === o
+    )
+      return o
   return null
 }
 
@@ -78,7 +83,7 @@ export function useInteractionRay() {
   const room = useRoom()
   useFrame(({ camera }) => {
     const s = useGame.getState()
-    if (s.paused || s.uiLock || s.cameraRaised) {
+    if (s.paused || s.uiLock || s.cameraRaised || s.held) {
       s.setFocus(null)
       return
     }
