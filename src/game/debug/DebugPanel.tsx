@@ -149,7 +149,7 @@ const GROUPS: [name: string, match: RegExp][] = [
   ['interaction', /^(reach|drawer|door|padlock|message|complete|highlight|interact|pickup)/],
   [
     'light',
-    /^(white|uv|light|shadow|held|flicker|sputter|emptyGlow|lowStrength|strengthCurve|cone|dust|reveal|clue|beam)/,
+    /^(white|uv|light|candle|shadow|held|flicker|sputter|emptyGlow|lowStrength|strengthCurve|cone|dust|reveal|clue|beam)/,
   ],
 ]
 

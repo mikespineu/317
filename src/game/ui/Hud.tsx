@@ -1,6 +1,8 @@
+import { useEffect, useState } from 'react'
 import { applyItemToFocus, clueNote, heldPrompt, itemLabel, promptFor } from '../interaction/actions'
 import { useHud } from '../interaction/hudState'
 import { useGame } from '../store'
+import { tuning } from '../tuning'
 import './hud.css'
 
 // Crosshair, prompt, messages, battery, item bar and the level-complete card.
@@ -15,6 +17,8 @@ export function Hud() {
   const batteryLevel = useGame((s) => s.batteryLevel)
   const spares = useGame((s) => s.spares)
   const swapping = useGame((s) => s.swapping)
+  const lightOn = useGame((s) => s.lightOn)
+  const lightMode = useGame((s) => s.lightMode)
   const clues = useGame((s) => s.clues)
   // Subscribed so the prompt and the note re-evaluate when the chain moves on.
   useGame((s) => s.flags)
@@ -23,12 +27,30 @@ export function Hud() {
   const message = useHud((s) => s.message)
   const messageId = useHud((s) => s.messageId)
 
+  // The UV hint waits a while after the flashlight is found, so the player
+  // gets a chance to look around first.
+  const [uvHintDue, setUvHintDue] = useState(false)
+  useEffect(() => {
+    if (!hasLight) return setUvHintDue(false)
+    const timer = window.setTimeout(() => setUvHintDue(true), tuning.uvHintDelay * 1000)
+    return () => window.clearTimeout(timer)
+  }, [hasLight])
+
   if (uiLock === 'complete') return <CompleteCard />
 
   const aiming = !uiLock && !cameraRaised
   const prompt = aiming ? (held ? heldPrompt(held) : promptFor(focus)) : null
   const note = hasLight && clues.length > 0 ? clueNote() : null
-  const guide = uiLock ? null : guideFor({ touch, hasLight, batteryLevel, spares, swapping })
+  const guide = uiLock ? null : guideFor({
+        touch,
+        hasLight,
+        batteryLevel,
+        spares,
+        swapping,
+        clueFound: clues.length > 0,
+        uvActive: lightOn && lightMode === 'uv',
+        uvHintDue,
+      })
 
   return (
     <div className={`hud${touch ? ' is-touch' : ''}`}>
@@ -75,13 +97,17 @@ interface Guide {
 }
 
 // The standing instruction for what to do next, or null when nothing is
-// needed: first find the flashlight, then keep it powered.
+// needed: first find the flashlight, then keep it powered, then (until the
+// painting's code is found) learn about the UV light.
 function guideFor(s: {
   touch: boolean
   hasLight: boolean
   batteryLevel: string
   spares: number
   swapping: boolean
+  clueFound: boolean
+  uvActive: boolean
+  uvHintDue: boolean
 }): Guide | null {
   if (!s.hasLight) {
     return s.touch
@@ -94,7 +120,8 @@ function guideFor(s: {
         }
   }
   const weak = s.batteryLevel === 'low' || s.batteryLevel === 'empty'
-  if (!weak || s.swapping) return null
+  if (!weak) return uvGuide(s)
+  if (s.swapping) return null
   const state = s.batteryLevel === 'empty' ? 'Battery dead.' : 'Battery low.'
   if (s.spares > 0) {
     return s.touch
@@ -118,6 +145,22 @@ function guideFor(s: {
       }
 }
 
+// Where the room's first clue is hidden: in UV light only.
+function uvGuide(s: { touch: boolean; clueFound: boolean; uvActive: boolean; uvHintDue: boolean }): Guide | null {
+  if (s.clueFound) return null
+  if (s.uvActive)
+    return { id: 'uv-sweep', before: 'The UV light shows what the eye cannot. Sweep it slowly across the walls.' }
+  if (!s.uvHintDue) return null
+  return s.touch
+    ? { id: 'uv-switch', before: 'Something may be hidden in this room. Tap the UV button, then sweep the walls.' }
+    : {
+        id: 'uv-switch',
+        before: 'Something may be hidden in this room. Press ',
+        key: 'Q',
+        after: ' for UV light, then sweep the walls.',
+      }
+}
+
 // `true` marks the keys that do nothing until the flashlight is in hand.
 const CONTROLS = [
   ['WASD', 'Move', false],
@@ -125,8 +168,9 @@ const CONTROLS = [
   ['F', 'Light', true],
   ['Q', 'White / UV', true],
   ['R', 'Swap battery', true],
-  ['RMB', 'Camera', false],
-  ['LMB', 'Shoot', false],
+  ['P / RMB', 'Photo mode', false],
+  ['LMB', 'Shoot (photo mode)', false],
+  ['Esc', 'Leave photo mode / pause', false],
 ] as const
 
 // Always-on key reference, bottom-left. Desktop only: on touch that corner

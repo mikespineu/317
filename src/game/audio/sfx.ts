@@ -11,6 +11,8 @@ export type SfxName =
   | 'lowTick'
   | 'chime'
   | 'pickup'
+  | 'candleLight'
+  | 'candleOut'
   | 'propGrab'
   | 'propThrow'
   | 'propHit'
@@ -70,6 +72,18 @@ const voices: Record<SfxName, (a: Audio) => void> = {
     tone(a, { type: 'triangle', from: 620, dur: 0.11, gain: 0.09 })
     tone(a, { type: 'triangle', from: 930, at: 0.07, dur: 0.16, gain: 0.08 })
     click(a, 0, 1800, 0.06, 0.02)
+  },
+
+  // A match strike and the wick catching.
+  candleLight(a) {
+    noise(a, { filter: 'bandpass', from: 2800, to: 1800, q: 1.1, dur: 0.1, gain: 0.1, attack: 0.005 })
+    noise(a, { filter: 'lowpass', from: 500, at: 0.08, dur: 0.3, gain: 0.07, attack: 0.06 })
+    tone(a, { type: 'triangle', from: 220, to: 330, at: 0.08, dur: 0.12, gain: 0.015, attack: 0.03 })
+  },
+
+  // A short breath, and the flame gone.
+  candleOut(a) {
+    noise(a, { filter: 'bandpass', from: 1100, to: 350, q: 0.9, dur: 0.28, gain: 0.09, attack: 0.03 })
   },
 
   // Cardboard and paper taken off a shelf.
