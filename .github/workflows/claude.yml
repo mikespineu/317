@@ -29,6 +29,11 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 1
+          # Leave the blender/ folder (binary .blend/.glb sources) out of the checkout
+          sparse-checkout: |
+            /*
+            !/blender/
+          sparse-checkout-cone-mode: false
 
       - name: Run Claude Code
         id: claude
