@@ -21,7 +21,7 @@ import { Dust } from './Dust'
 import { VolumetricCone } from './VolumetricCone'
 import { beamColors, syncBeamUniforms } from './uvReveal'
 
-const HELD_MODEL = '/models/level0/flashlight.glb'
+const HELD_MODEL = '/models/shared/flashlight.glb'
 const FORWARD = new Vector3(0, 0, -1)
 const aimDir = new Vector3()
 

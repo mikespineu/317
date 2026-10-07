@@ -1,0 +1,49 @@
+/* The intro overlay sits over the canvas and under the HUD. It never takes
+   input: the gesture that starts or skips the intro is heard on the window. */
+.intro {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  font-family: var(--font-display);
+}
+
+/* A flat wash of ink; Intro.tsx steps its opacity. */
+.intro-wash {
+  position: absolute;
+  inset: 0;
+  background: var(--color-ink);
+  opacity: 0;
+}
+
+.intro-prompt {
+  position: absolute;
+  left: 50%;
+  bottom: calc(env(safe-area-inset-bottom, 0px) + 12%);
+  margin: 0;
+  padding: 0.5rem 1.1rem;
+  transform: translateX(-50%);
+  font-size: 0.95rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  white-space: nowrap;
+  animation: intro-prompt 1.6s steps(2, jump-none) infinite;
+}
+
+.intro-prompt[hidden] {
+  display: none;
+}
+
+@keyframes intro-prompt {
+  0% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0.55;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .intro-prompt {
+    animation: none;
+  }
+}

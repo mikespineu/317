@@ -53,26 +53,41 @@ export const runtime = {
     mode: 'white' as LightMode,
   },
 
-  // Written by Wisp.
-  wisp: {
-    object: null as Object3D | null,
-    position: new Vector3(),
-    speed: 0, // m/s
-    state: 'gone' as WispState,
-    exposure: 0, // 0..1
-  },
+  // One entry per ghost, by definition id. Each is written by its own <Wisp>,
+  // which adds it on mount and removes it on unmount.
+  ghosts: new Map<string, GhostRuntime>(),
+}
+
+export interface GhostRuntime {
+  id: string
+  object: Object3D | null // null once it has dissolved
+  position: Vector3
+  speed: number // m/s
+  state: WispState
+  exposure: number // 0..1
+}
+
+export function createGhostRuntime(id: string): GhostRuntime {
+  return { id, object: null, position: new Vector3(), speed: 0, state: 'gone', exposure: 0 }
+}
+
+// The ghosts that can still be seen and photographed.
+export function liveGhosts(): GhostRuntime[] {
+  const live: GhostRuntime[] = []
+  for (const g of runtime.ghosts.values())
+    if (g.object && g.state !== 'gone' && g.state !== 'dissolve') live.push(g)
+  return live
 }
 
 // Puts the per-frame state back to its starting values for a level restart.
-// Colliders are rebuilt by RoomScene when the room remounts.
-export function resetRuntime() {
-  const { input, player, battery, beam, wisp } = runtime
+// Colliders are rebuilt by RoomScene when the room remounts, ghosts by their
+// components. `startCharge` comes from the room definition.
+export function resetRuntime(startCharge = tuning.startCharge) {
+  const { input, player, battery, beam } = runtime
   input.moveX = input.moveY = input.lookDX = input.lookDY = 0
   player.position.set(0, tuning.eyeHeight, 0)
   player.yaw = player.pitch = 0
-  battery.charge = tuning.startCharge
+  battery.charge = startCharge
   beam.strength = 0
-  wisp.object = null
-  wisp.speed = wisp.exposure = 0
-  wisp.state = 'gone'
+  runtime.ghosts.clear()
 }

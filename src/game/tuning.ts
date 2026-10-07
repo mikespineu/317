@@ -27,6 +27,7 @@ export const tuning = {
 
   // interaction
   reach: 2.0,
+  pickupAimRadius: 0.16, // m; a pickup this close to the aim line is picked without an exact hit
   drawerSeconds: 0.5,
   doorSeconds: 1.2,
   completeDelay: 0.5, // s between the door stopping and the "Level complete" card
@@ -188,9 +189,13 @@ export const tuning = {
   vignetteStart: 0.3, // distance from screen centre where darkening begins
   grainStrength: 0.035,
   gradeStrength: 0.6, // 0 = untouched, 1 = full plum shadows / warm highlights
-  inkWidth: 1.2, // outline thickness, CSS px
+  inkWidth: 1.4, // outline thickness, CSS px
   inkThreshold: 0.012, // depth-curvature that starts a line; lower = more lines
-  inkStrength: 0.9, // 1 = lines fully ink-black
+  inkStrength: 0.95, // 1 = lines fully ink-black
+  inkWobble: 1.1, // CSS px the line wanders off the true edge; 0 = ruled
+  inkPressure: 0.45, // how much the line swells and thins along its length
+  inkCrease: 0.65, // weight of creases inside a shape against its outline
+  inkNear: 0.5, // extra weight on lines close to the eye, less on far ones
   nightGamma: 0.6, // brightness curve before banding; 1 = off, lower = brighter shadows
   bandCount: 6, // flat tones the brightness is snapped to
   bandStrength: 0.7, // 0 = smooth shading, 1 = fully banded
@@ -204,6 +209,34 @@ export const tuning = {
   whisperVolume: 0.6,
   creakMinSeconds: 18, // gap between the room's idle creaks
   creakMaxSeconds: 45,
+  clockTickVolume: 0.5,
+  windVolume: 0.4,
+  keyWhisperBoost: 1.5, // the key Wisp's whisper against the others
+
+  // intro
+  introSlamSeconds: 0.22, // doors swing shut, ease-in
+  introShakeSeconds: 0.15, // camera shake after the slam
+  introShakeAmount: 0.012, // radians
+  introLockSeconds: 2.6, // input lock, whole intro
+  introDipSeconds: 0.3, // dip to near-black before control returns
+  introLookDeg: 4, // how far the view eases toward the clock, at most
+
+  // ghosts
+  ghostZoneMargin: 0.2, // m; the wander path stays this far inside each zone
+  keyDropGravity: 4, // m/s², the dropped key's fall
+  keyDropRest: 0.02, // m above the floor
+  keyDropBounce: 0.25, // share of the fall speed kept by the one bounce
+  keyGlint: 0.8, // emissive pulse of a dropped item until it is picked up
+
+  // interactions (hall)
+  searchSeconds: 0.8, // coat pocket rummage
+  lidSeconds: 0.9, // chest lid, ease-out
+  symbolLockDropSeconds: 0.5,
+
+  // mirror clue
+  mirrorClueDwell: 1.0, // s the text must stay lit and in the reflection
+  mirrorClueMinLight: 0.35, // beam strength on the text
+  mirrorTextGlow: 0, // emissive of the mirror-only text; raise only if playtests need it
 }
 
 export type Tuning = typeof tuning

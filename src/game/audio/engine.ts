@@ -159,7 +159,8 @@ export function noise(a: Audio, o: NoiseOpts) {
 }
 
 // A dry wooden groan: a slow sawtooth through a resonant band, pitch wavering.
-export function creak(a: Audio, at: number, dur: number, gain: number, base = 78) {
+// `band` scales the resonance: below 1 the wood is bigger and further away.
+export function creak(a: Audio, at: number, dur: number, gain: number, base = 78, band = 1) {
   const t0 = a.ctx.currentTime + at
   const osc = a.ctx.createOscillator()
   osc.type = 'sawtooth'
@@ -172,8 +173,8 @@ export function creak(a: Audio, at: number, dur: number, gain: number, base = 78
   const filter = a.ctx.createBiquadFilter()
   filter.type = 'bandpass'
   filter.Q.value = 9
-  filter.frequency.setValueAtTime(700, t0)
-  filter.frequency.linearRampToValueAtTime(1150, t0 + dur)
+  filter.frequency.setValueAtTime(700 * band, t0)
+  filter.frequency.linearRampToValueAtTime(1150 * band, t0 + dur)
   const env = a.ctx.createGain()
   env.gain.setValueAtTime(SILENT, t0)
   env.gain.linearRampToValueAtTime(gain, t0 + dur * 0.3)

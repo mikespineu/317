@@ -2,18 +2,19 @@ import { useFrame } from '@react-three/fiber'
 import { useEffect, useMemo } from 'react'
 import * as THREE from 'three/webgpu'
 import { float, smoothstep, uniform, uv } from 'three/tsl'
+import { useRoomDef } from '../room/RoomContext'
+import type { RoomDef } from '../room/roomDef'
 import { tuning } from '../tuning'
 
-// The window on the north wall (-Z) and where the moon sits behind it. These
-// are geometry, not balance, so they stay here rather than in tuning.
-const WINDOW = { x: 0, y: 1.6, z: -2.58, w: 1.06, h: 1.06 }
-const MOON_POSITION = new THREE.Vector3(-1.1, 4.4, -6.2) // shines toward the origin
+// The window and the moon behind it are geometry, not balance, so they come
+// from the room definition rather than from tuning.
+type Atmo = RoomDef['atmosphere']
 const PATCH_Y = 0.012 // just above the floor, clear of z-fighting
 
 // The window's outline projected along the moonlight onto the floor. A
 // shadowless directional light cannot draw this patch by itself.
-function buildPatchGeometry() {
-  const dir = MOON_POSITION.clone().negate().normalize()
+function buildPatchGeometry({ window: WINDOW, moon }: Atmo) {
+  const dir = new THREE.Vector3(...moon).negate().normalize()
   const corners: [number, number, number, number][] = [
     [-0.5, -0.5, 0, 0],
     [0.5, -0.5, 1, 0],
@@ -32,17 +33,18 @@ function buildPatchGeometry() {
   const geometry = new THREE.BufferGeometry()
   geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3))
   geometry.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2))
-  // The lower window edge lands nearer the wall, so this winding faces up.
+  // The material is double-sided, so the winding does not depend on which
+  // wall the window is in.
   geometry.setIndex([0, 2, 1, 0, 3, 2])
   return geometry
 }
 
-function buildAtmosphere() {
+function buildAtmosphere(atmo: Atmo) {
   const background = new THREE.Color(tuning.backgroundColor)
   const fog = new THREE.FogExp2(tuning.fogColor, tuning.fogDensity)
 
   const moon = new THREE.DirectionalLight(tuning.moonColor, tuning.moonIntensity)
-  moon.position.copy(MOON_POSITION)
+  moon.position.set(...atmo.moon)
   moon.castShadow = false
 
   const ambient = new THREE.AmbientLight(tuning.ambientColor, tuning.ambientIntensity)
@@ -67,7 +69,7 @@ function buildAtmosphere() {
   material.fog = false
   material.side = THREE.DoubleSide
 
-  const patch = new THREE.Mesh(buildPatchGeometry(), material)
+  const patch = new THREE.Mesh(buildPatchGeometry(atmo), material)
   patch.name = 'Moon_Patch'
   patch.renderOrder = 1
   patch.castShadow = false
@@ -80,7 +82,9 @@ function buildAtmosphere() {
 // Background, moonlight, ambient and fog. Mounted outside RoomScene, so it
 // must not depend on the loaded room.
 export function Atmosphere() {
-  const a = useMemo(buildAtmosphere, [])
+  const atmo = useRoomDef().atmosphere
+  const a = useMemo(() => buildAtmosphere(atmo), [atmo])
+  const fogScale = atmo.fogScale ?? 1
 
   useEffect(
     () => () => {
@@ -94,7 +98,7 @@ export function Atmosphere() {
   useFrame(() => {
     a.background.set(tuning.backgroundColor)
     a.fog.color.set(tuning.fogColor)
-    a.fog.density = tuning.fogDensity
+    a.fog.density = tuning.fogDensity * fogScale
     a.moon.color.set(tuning.moonColor)
     a.moon.intensity = tuning.moonIntensity
     a.ambient.color.set(tuning.ambientColor)

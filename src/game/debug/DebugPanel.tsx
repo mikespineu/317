@@ -1,10 +1,13 @@
 import { useEffect, useRef } from 'react'
 import { createRoot } from 'react-dom/client'
 import { Leva, button, buttonGroup, folder, monitor, useControls } from 'leva'
-import { interactWith, lockCode, tryCode } from '../interaction/actions'
+import { interactWith, lockCode, lockSymbols, tryCode, trySymbols } from '../interaction/actions'
+import { skipIntro } from '../intro/Intro'
+import { apply, check } from '../puzzle/chain'
 import { postSettings } from '../renderer/postprocessing'
 import { quality } from '../renderer/quality'
-import { level0 } from '../room/level0.def'
+import type { DebugSkip } from '../room/roomDef'
+import { currentRoom, rooms } from '../room/rooms'
 import { runtime } from '../runtime'
 import { levelOf, useGame } from '../store'
 import { tuning } from '../tuning'
@@ -25,58 +28,60 @@ const narrow = window.matchMedia('(pointer: coarse)').matches
 
 // ---- level -----------------------------------------------------------------
 
-// The drawer and its lock, found by shape rather than by name.
-const drawer = level0.interactables.find((i) => 'lock' in i)
+const def = currentRoom()
 
-const flag = (id: string) => !!useGame.getState().flags[id]
+// The room's chain, in order, from the definition's `debugSkips`. Skipping to
+// a step applies the earlier ones too. Locks and interactables go through the
+// interaction system's own actions, so the padlock drops and the drawer
+// slides as if the player had done it; `give` sets a flag directly only when
+// that did nothing (room not loaded yet).
+const skips = def.debugSkips ?? []
 
-// The Level 0 chain, in order. Skipping to a step applies the earlier ones
-// too. Steps 2 and 3 go through the interaction system's own actions, so the
-// padlock drops and the drawer slides as if the player had done it; the flag
-// is set directly only when that did nothing (room not loaded yet).
-const CHAIN: [label: string, run: () => void][] = [
-  ['Skip to 1: clue found', () => useGame.getState().addClue('drawer-code')],
-  [
-    'Skip to 2: drawer unlocked',
-    () => {
-      if (flag('drawer-unlocked')) return
-      if (drawer) tryCode(drawer.node, lockCode(drawer.node))
-      if (!flag('drawer-unlocked')) useGame.getState().setFlag('drawer-unlocked')
-    },
-  ],
-  [
-    'Skip to 3: drawer open',
-    () => {
-      if (flag('drawer-open')) return
-      if (drawer) interactWith(drawer.node)
-      if (!flag('drawer-open')) useGame.getState().setFlag('drawer-open')
-    },
-  ],
-  [
-    'Skip to 4: key in inventory',
-    () => {
-      const s = useGame.getState()
-      if (s.pickedUp.Pickup_Key) return // never hand out a second key
-      s.addItem('key')
-      s.setPickedUp('Pickup_Key', true)
-    },
-  ],
-]
+// The lock's `sets` when the node has one: the token that says it is open.
+const lockOf = (node: string) => def.interactables.find((i) => i.node === node)?.lock
 
-function skipTo(step: number) {
-  if (!useGame.getState().hasLight) useGame.getState().addItem('flashlight')
-  for (let i = 0; i <= step; i++) CHAIN[i][1]()
+function runSkip(skip: DebugSkip) {
+  const lock = skip.unlock ? lockOf(skip.unlock) : undefined
+  if (skip.unlock && lock && !check(lock.sets)) {
+    if (lock.type === 'code') tryCode(skip.unlock, lockCode(skip.unlock))
+    else trySymbols(skip.unlock, lockSymbols(skip.unlock))
+  }
+  if (skip.use) {
+    const sets = def.interactables.find((i) => i.node === skip.use)?.sets
+    // An opened symbol lock lifts its lid by itself, a moment later; using it
+    // now opens it at once and that later call finds it already open.
+    if (!sets || !check(sets)) interactWith(skip.use)
+  }
+  for (const token of skip.give ?? []) if (!check(token)) apply(token)
+  if (skip.take) {
+    const s = useGame.getState()
+    const pickup = def.pickups.find((p) => p.node === skip.take)
+    // Never hand out a second copy: a taken pickup stays taken.
+    if (pickup && !s.pickedUp[skip.take]) {
+      s.setPickedUp(skip.take, true)
+      s.addItem(pickup.item)
+    }
+  }
 }
 
+function skipTo(step: number) {
+  skipIntro()
+  if (!useGame.getState().hasLight) useGame.getState().addItem('flashlight')
+  for (let i = 0; i <= step; i++) runSkip(skips[i])
+}
+
+function skipDone(skip: DebugSkip) {
+  const lock = skip.unlock ? lockOf(skip.unlock) : undefined
+  return (
+    (!lock || check(lock.sets)) &&
+    check(skip.give) &&
+    (!skip.take || !!useGame.getState().pickedUp[skip.take])
+  )
+}
+
+// One mark per step, numbered like the buttons: '1+ 2+ 3- 4-'.
 function chainSummary() {
-  const s = useGame.getState()
-  const mark = (on: boolean) => (on ? '+' : '-')
-  return [
-    `clue ${mark(s.clues.includes('drawer-code'))}`,
-    `unlocked ${mark(!!s.flags['drawer-unlocked'])}`,
-    `open ${mark(!!s.flags['drawer-open'])}`,
-    `key ${s.items.key ?? 0}`,
-  ].join('  ')
+  return skips.map((skip, i) => `${i + 1}${skipDone(skip) ? '+' : '-'}`).join(' ')
 }
 
 // ---- battery ---------------------------------------------------------------
@@ -137,16 +142,17 @@ const tuningDefaults: Bag = { ...tuningBag }
 // First match wins, so the specific prefixes come before the broad ones
 // (uvDrainSeconds is battery, not beam; uvHumVolume is audio).
 const GROUPS: [name: string, match: RegExp][] = [
-  ['wisp', /^(wisp|ghost)/],
+  ['intro', /^intro/],
+  ['wisp', /^(wisp|ghost|keyDrop|keyGlint)/],
   ['camera', /^(photo|camera|aimAssist|shutter)/],
   ['mirror', /^mirror/],
   ['props', /^(throw|prop|hold)/],
   ['post', /^(bloom|vignette|grain|grade|ink|night|band|indigo|paper)/],
-  ['audio', /(Volume|Gain)$|^(creak|audio|master)/],
+  ['audio', /(Volume|Gain)$|^(creak|audio|master|keyWhisper|clockTick|wind)/],
   ['atmosphere', /^(moon|ambient|fog|background)/],
   ['battery', /Drain|Charge|^(level|swap|emergency|modeSwitch|lowTick|battery)/],
   ['player', /^(eye|player|walk|pitch|joystick|tap|maxFrame|touch|mouse|look)|Sensitivity$/],
-  ['interaction', /^(reach|drawer|door|padlock|message|complete|highlight|interact|pickup)/],
+  ['interaction', /^(reach|drawer|door|padlock|message|complete|highlight|interact|pickup|search|lid|symbolLock)/],
   [
     'light',
     /^(white|uv|light|candle|shadow|held|flicker|sputter|emptyGlow|lowStrength|strengthCurve|cone|dust|reveal|clue|beam)/,
@@ -262,9 +268,16 @@ function Controls() {
     () => ({
       'Reset level': button(() => useGame.getState().resetLevel()),
       'Reload page': button(() => window.location.reload()),
-      'Complete level': button(() => useGame.getState().setUiLock('complete')),
+      'Complete level': button(() => {
+        // Stops the clock too, so the card has a time to show.
+        useGame.getState().markCompleted()
+        useGame.getState().setUiLock('complete')
+      }),
       // (Reset level undoes it.)
-      ...Object.fromEntries(CHAIN.map(([label], i) => [label, button(() => skipTo(i))])),
+      ...(def.intro ? { 'Skip intro': button(() => skipIntro()) } : {}),
+      ...Object.fromEntries(
+        skips.map((skip, i) => [`Skip to ${i + 1}: ${skip.label}`, button(() => skipTo(i))]),
+      ),
       chain: monitor(chainSummary, { interval: MONITOR_MS }),
     }),
     closed,
@@ -318,11 +331,23 @@ function Controls() {
   )
 
   useControls(
-    'Wisp',
-    () => ({
-      state: monitor(() => runtime.wisp.state, { interval: MONITOR_MS }),
-      exposure: monitor(() => runtime.wisp.exposure.toFixed(2), { interval: MONITOR_MS }),
-    }),
+    'Ghosts',
+    () =>
+      Object.fromEntries(
+        def.ghosts.map((g) => [
+          g.id,
+          monitor(
+            () => {
+              const live = runtime.ghosts.get(g.id)
+              if (!live) return 'gone'
+              const p = live.position
+              const at = `${p.x.toFixed(1)}, ${p.y.toFixed(1)}, ${p.z.toFixed(1)}`
+              return `${live.state}  exp ${live.exposure.toFixed(2)}  @ ${at}`
+            },
+            { interval: MONITOR_MS },
+          ),
+        ]),
+      ),
     closed,
   )
 
@@ -331,6 +356,12 @@ function Controls() {
     () => ({
       backend: monitor(() => useGame.getState().backend ?? 'starting', { interval: 1000 }),
       preset: { value: quality.name as string, editable: false },
+      'reload room': buttonGroup({
+        label: '?room=',
+        opts: Object.fromEntries(
+          Object.keys(rooms).map((id) => [id, () => reloadWith((p) => p.set('room', id))]),
+        ),
+      }),
       ...flagButton('webgl', 'Reload with ?webgl (force WebGL 2)', 'Reload without ?webgl'),
       ...flagButton('greybox', 'Reload with ?greybox', 'Reload without ?greybox'),
       'reload quality': buttonGroup({
@@ -391,6 +422,12 @@ function Panel() {
 }
 
 const MODIFIERS = new Set(['Shift', 'Alt', 'Control', 'Meta'])
+
+// Console access to the live game (?debug only), for poking at state and
+// scripting a run: __317.interactWith('Pickup_Flashlight').
+Object.assign(window, {
+  __317: { useGame, runtime, tuning, interactWith, trySymbols, lockSymbols, skipIntro, apply, check },
+})
 
 // Mounted by Game.tsx only when DEBUG is true.
 export function DebugPanel() {

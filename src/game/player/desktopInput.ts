@@ -1,6 +1,7 @@
 import { emit } from '../events'
 import { runtime } from '../runtime'
 import { useGame } from '../store'
+import type { UiLock } from '../store'
 import { tuning } from '../tuning'
 
 // Keyboard, mouse and pointer lock. This module also owns `paused`, because
@@ -35,10 +36,14 @@ let relockTimer = 0
 let portrait = false
 let lastTouchAt = -Infinity
 
+// The intro holds the UI lock but is not a modal: the pointer stays locked
+// and the player can look around while the doors slam.
+const modal = (lock: UiLock) => lock !== null && lock !== 'intro'
+
 export function syncPaused() {
   const { touch, uiLock, setPaused } = useGame.getState()
   // Touch has no pointer lock, so there only the rotate prompt pauses.
-  const unlocked = !touch && !locked && !relocking && uiLock === null
+  const unlocked = !touch && !locked && !relocking && !modal(uiLock)
   setPaused(portrait || unlocked)
 }
 
@@ -92,7 +97,7 @@ function isTyping(target: EventTarget | null) {
 
 function playing() {
   const { paused, uiLock } = useGame.getState()
-  return locked && !paused && uiLock === null
+  return locked && !paused && !modal(uiLock)
 }
 
 function onKeyDown(e: KeyboardEvent) {
@@ -129,7 +134,7 @@ function onMouseDown(e: MouseEvent) {
     if (e.button === 0 && lockable && game.uiLock === null && !portrait) requestLock()
     return
   }
-  if (!playing()) return
+  if (!playing() || game.uiLock !== null) return // the intro allows looking, nothing else
   if (e.button === 0) {
     if (game.cameraRaised) emit('shoot')
     else emit('interact', {})
@@ -189,12 +194,12 @@ export function installDesktopInput(root: HTMLElement) {
   let relockAfterUi = false
   const unsubscribe = useGame.subscribe((s, prev) => {
     if (s.uiLock !== prev.uiLock) {
-      if (s.uiLock !== null && prev.uiLock === null) {
+      if (modal(s.uiLock) && !modal(prev.uiLock)) {
         // A modal needs the cursor. This is not a pause.
         relockAfterUi = locked
         releaseKeys()
         if (locked) document.exitPointerLock()
-      } else if (s.uiLock === null && relockAfterUi) {
+      } else if (!modal(s.uiLock) && relockAfterUi) {
         relockAfterUi = false
         requestLock()
       }

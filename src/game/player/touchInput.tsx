@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react'
 import type { PointerEvent as ReactPointerEvent, ReactNode, RefObject } from 'react'
 import { emit } from '../events'
+import { useRoomDef } from '../room/RoomContext'
 import { runtime } from '../runtime'
 import { useGame } from '../store'
 import { tuning } from '../tuning'
@@ -192,6 +193,8 @@ function Buttons() {
   const lightMode = useGame((s) => s.lightMode)
   const spares = useGame((s) => s.spares)
   const raised = useGame((s) => s.cameraRaised)
+  // A room without the UV lamp has no switch for it.
+  const uv = useRoomDef().lights?.uv !== false
   const game = useGame.getState
 
   return (
@@ -224,15 +227,17 @@ function Buttons() {
       </TouchButton>
       {hasLight && (
         <>
-          <TouchButton
-            label={lightMode === 'uv' ? 'Switch to white light' : 'Switch to UV light'}
-            area="mode"
-            tone="uv"
-            active={lightMode === 'uv'}
-            onPress={() => game().toggleMode()}
-          >
-            <span className="touch-glyph">UV</span>
-          </TouchButton>
+          {uv && (
+            <TouchButton
+              label={lightMode === 'uv' ? 'Switch to white light' : 'Switch to UV light'}
+              area="mode"
+              tone="uv"
+              active={lightMode === 'uv'}
+              onPress={() => game().toggleMode()}
+            >
+              <span className="touch-glyph">UV</span>
+            </TouchButton>
+          )}
           <TouchButton
             label={lightOn ? 'Light off' : 'Light on'}
             area="light"

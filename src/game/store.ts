@@ -1,10 +1,12 @@
 import { create } from 'zustand'
+import { currentRoom } from './room/rooms'
+import type { RoomDef } from './room/roomDef'
 import { resetRuntime, runtime } from './runtime'
 import { tuning } from './tuning'
 
 export type LightMode = 'white' | 'uv'
 export type BatteryLevel = 'full' | 'medium' | 'low' | 'empty'
-export type UiLock = 'padlock' | 'photo' | 'complete' | null
+export type UiLock = 'padlock' | 'symbol-lock' | 'note' | 'intro' | 'photo' | 'complete' | null
 
 export interface PhotoParts {
   lit: number
@@ -61,6 +63,13 @@ export interface GameState {
   uiLock: UiLock
   paused: boolean // pointer lock lost on desktop, or portrait on a phone
 
+  // room
+  roomId: string // which definition is mounted
+  startedAt: number | null // performance.now() when the intro ends; for the time and par star
+  completedAt: number | null
+  notesRead: string[] // note ids, so a note can be re-read from the item bar
+  openNote: string | null // the note shown by NoteUI
+
   // camera
   cameraRaised: boolean
   photos: Photo[] // best photo per ghost
@@ -86,20 +95,31 @@ export interface GameState {
   setUiLock(lock: UiLock): void
   setPaused(paused: boolean): void
   setCameraRaised(raised: boolean): void
+  markStarted(): void
+  markCompleted(): void
+  setOpenNote(id: string | null): void
   addShot(shot: Omit<Shot, 'best'>): void
   setBackend(backend: 'webgpu' | 'webgl2'): void
   setTouch(touch: boolean): void
   resetLevel(): void
 }
 
-// Everything a level restart puts back. Environment fields (backend, touch,
-// paused) are left alone.
-const initialLevelState = () => ({
+const chargeOf = (def: RoomDef) => def.startCharge ?? tuning.startCharge
+
+// Everything a level restart puts back, for the given room. Environment
+// fields (backend, touch, paused) are left alone.
+const initialLevelState = (def: RoomDef) => ({
+  roomId: def.id,
+  // A room without an intro starts its clock at once.
+  startedAt: (def.intro ? null : performance.now()) as number | null,
+  completedAt: null as number | null,
+  notesRead: [] as string[],
+  openNote: null as string | null,
   hasLight: false,
   lightOn: false,
   lightMode: 'white' as LightMode,
   switching: false,
-  batteryLevel: levelOf(tuning.startCharge),
+  batteryLevel: levelOf(chargeOf(def)),
   spares: 0,
   swapping: false,
   items: {} as Record<string, number>,
@@ -114,8 +134,10 @@ const initialLevelState = () => ({
   lastShot: null,
 })
 
+runtime.battery.charge = chargeOf(currentRoom())
+
 export const useGame = create<GameState>((set, get) => ({
-  ...initialLevelState(),
+  ...initialLevelState(currentRoom()),
   paused: false,
 
   backend: null,
@@ -127,6 +149,8 @@ export const useGame = create<GameState>((set, get) => ({
   },
 
   toggleMode: () => {
+    // A room without the UV lamp: the switch does nothing.
+    if (currentRoom().lights?.uv === false) return
     if (!get().hasLight || get().switching) return
     const { epoch } = get()
     set({ switching: true })
@@ -175,6 +199,19 @@ export const useGame = create<GameState>((set, get) => ({
     if (get().paused !== paused) set({ paused })
   },
   setCameraRaised: (cameraRaised) => set({ cameraRaised }),
+  markStarted: () => {
+    if (get().startedAt === null) set({ startedAt: performance.now() })
+  },
+  markCompleted: () => {
+    if (get().completedAt === null) set({ completedAt: performance.now() })
+  },
+  // Opening a note takes the UI lock; closing it gives the lock back.
+  setOpenNote: (openNote) =>
+    set((s) => ({
+      openNote,
+      uiLock: openNote ? 'note' : s.uiLock === 'note' ? null : s.uiLock,
+      notesRead: openNote && !s.notesRead.includes(openNote) ? [...s.notesRead, openNote] : s.notesRead,
+    })),
 
   // Keeps only the best photo per ghost; lastShot always shows the new one.
   addShot: (shot) =>
@@ -197,9 +234,10 @@ export const useGame = create<GameState>((set, get) => ({
   },
 
   // Restarts the level without reloading the page, so live tuning survives.
-  // Level0 is keyed on epoch: the room reloads and every system remounts.
+  // Room is keyed on epoch: the room reloads and every system remounts.
   resetLevel: () => {
-    resetRuntime()
-    set((s) => ({ ...initialLevelState(), epoch: s.epoch + 1 }))
+    const def = currentRoom()
+    resetRuntime(chargeOf(def))
+    set((s) => ({ ...initialLevelState(def), epoch: s.epoch + 1 }))
   },
 }))

@@ -1,6 +1,6 @@
 import { audio, creak, noise, tone } from './engine'
 import type { Audio } from './engine'
-import { setLoop } from './loops'
+import { setLoop, stopTickOnBeat } from './loops'
 
 // Sound effects. Call sites exist across the game; this is the only module
 // that touches Web Audio. Everything is synthesised, there are no audio files.
@@ -23,8 +23,23 @@ export type SfxName =
   | 'doorCreak'
   | 'shutter'
   | 'wispDissolve'
+  | 'doorSlam'
+  | 'keyDrop'
+  | 'keyTurn'
+  | 'letterUnfold'
+  | 'rummage'
+  | 'symbolClick'
+  | 'chestClunk'
+  | 'lidCreak'
+  | 'mirrorChime'
 
-export type LoopName = 'roomTone' | 'uvHum' | 'wispWhisper'
+export type LoopName =
+  | 'roomTone'
+  | 'uvHum'
+  | 'wispWhisper'
+  | 'wispWhisperKey' // the key Wisp: louder and slightly lower
+  | 'clockTick'
+  | 'wind'
 
 // A short filtered-noise tick: the basis of every switch and latch here.
 function click(a: Audio, at: number, hz: number, gain: number, dur = 0.018) {
@@ -154,6 +169,110 @@ const voices: Record<SfxName, (a: Audio) => void> = {
     tone(a, { from: 520, to: 1560, dur: 1.0, gain: 0.025, attack: 0.2 })
     tone(a, { from: 783, to: 2349, at: 0.05, dur: 0.9, gain: 0.012, attack: 0.2 })
   },
+
+  // ---- the Entrance Hall ----
+
+  // Two heavy leaves meeting a moment apart, the latch, and the hall
+  // answering: a low boom that takes its time to die.
+  doorSlam(a) {
+    noise(a, { filter: 'lowpass', from: 1500, to: 180, dur: 0.32, gain: 0.5, attack: 0.002 })
+    thud(a, 0, 72, 0.55, 0.5)
+    click(a, 0, 2300, 0.2, 0.02)
+    // the second leaf
+    noise(a, { filter: 'lowpass', from: 1100, to: 160, at: 0.035, dur: 0.26, gain: 0.34, attack: 0.002 })
+    thud(a, 0.035, 90, 0.4, 0.4)
+    // latch and ironwork settling
+    click(a, 0.09, 1700, 0.12, 0.03)
+    click(a, 0.15, 1250, 0.07, 0.03)
+    tone(a, { from: 610, at: 0.04, dur: 0.5, gain: 0.02, attack: 0.002 })
+    // the room: two returns off the far wall, then the tail
+    noise(a, { filter: 'lowpass', from: 620, at: 0.19, dur: 0.3, gain: 0.11, attack: 0.02 })
+    noise(a, { filter: 'lowpass', from: 480, at: 0.38, dur: 0.34, gain: 0.055, attack: 0.03 })
+    noise(a, { filter: 'bandpass', from: 170, q: 3, at: 0.02, dur: 1.9, gain: 0.13, attack: 0.03 })
+    noise(a, { filter: 'lowpass', from: 420, to: 110, at: 0.02, dur: 1.5, gain: 0.12, attack: 0.03 })
+    tone(a, { from: 52, to: 40, at: 0.01, dur: 1.4, gain: 0.2, attack: 0.01 })
+  },
+
+  // A small brass key on floorboards: it lands, bounces once, and settles.
+  keyDrop(a) {
+    const hit = (at: number, g: number) => {
+      click(a, at, 5200, 0.2 * g, 0.012)
+      tone(a, { from: 4100, at, dur: 0.2, gain: 0.05 * g, attack: 0.001 })
+      tone(a, { from: 6350, at, dur: 0.13, gain: 0.03 * g, attack: 0.001 })
+      tone(a, { from: 2760, at, dur: 0.1, gain: 0.025 * g, attack: 0.001 })
+      thud(a, at, 210, 0.12 * g, 0.05) // the board under it
+    }
+    hit(0, 1)
+    hit(0.17, 0.5)
+    click(a, 0.27, 4700, 0.05, 0.01)
+    click(a, 0.31, 5600, 0.03, 0.01)
+  },
+
+  // The key goes in, two wards pass, and the bolt comes back.
+  keyTurn(a) {
+    noise(a, { filter: 'bandpass', from: 3800, to: 2600, q: 2, dur: 0.08, gain: 0.05, attack: 0.01 })
+    click(a, 0.12, 2600, 0.12, 0.012)
+    click(a, 0.17, 2300, 0.1, 0.012)
+    click(a, 0.28, 1500, 0.2, 0.03)
+    thud(a, 0.29, 140, 0.22, 0.11)
+    tone(a, { from: 1900, at: 0.28, dur: 0.12, gain: 0.015, attack: 0.002 })
+  },
+
+  // Old paper opened along two folds, with the creases cracking.
+  letterUnfold(a) {
+    noise(a, { filter: 'bandpass', from: 3200, to: 5200, q: 0.8, dur: 0.16, gain: 0.07, attack: 0.03 })
+    noise(a, { filter: 'bandpass', from: 4200, to: 2600, q: 0.8, at: 0.14, dur: 0.24, gain: 0.08, attack: 0.05 })
+    noise(a, { filter: 'lowpass', from: 500, dur: 0.3, gain: 0.03, attack: 0.05 })
+    click(a, 0.05, 5200 + Math.random() * 1500, 0.04, 0.008)
+    click(a, 0.19, 5200 + Math.random() * 1500, 0.05, 0.008)
+    click(a, 0.27, 5200 + Math.random() * 1500, 0.03, 0.008)
+  },
+
+  // A hand in a heavy coat: three passes of cloth, and something small found.
+  rummage(a) {
+    noise(a, { filter: 'bandpass', from: 700, to: 1100, q: 0.7, dur: 0.3, gain: 0.09, attack: 0.1 })
+    noise(a, { filter: 'bandpass', from: 950, to: 600, q: 0.7, at: 0.22, dur: 0.3, gain: 0.09, attack: 0.1 })
+    noise(a, { filter: 'bandpass', from: 650, to: 1000, q: 0.7, at: 0.48, dur: 0.32, gain: 0.08, attack: 0.1 })
+    noise(a, { filter: 'lowpass', from: 260, dur: 0.8, gain: 0.04, attack: 0.2 })
+    thud(a, 0.3, 120, 0.05, 0.08)
+    click(a, 0.62, 2200, 0.035, 0.015)
+  },
+
+  // A carved wheel dropping into its notch: heavier than the padlock's.
+  symbolClick(a) {
+    click(a, 0, 1900 + Math.random() * 250, 0.2, 0.022)
+    thud(a, 0.004, 230, 0.14, 0.06)
+    tone(a, { type: 'triangle', from: 1250, to: 900, dur: 0.04, gain: 0.03, attack: 0.001 })
+    click(a, 0.045, 2600, 0.05, 0.01)
+  },
+
+  // The chest's lock lets go: iron on oak, a short ring, and it settles.
+  chestClunk(a) {
+    click(a, 0, 1500, 0.2, 0.03)
+    thud(a, 0.01, 105, 0.4, 0.24)
+    noise(a, { filter: 'lowpass', from: 500, at: 0.01, dur: 0.16, gain: 0.22, attack: 0.002 })
+    tone(a, { from: 620, at: 0.01, dur: 0.5, gain: 0.03, attack: 0.002 })
+    tone(a, { from: 931, at: 0.01, dur: 0.35, gain: 0.018, attack: 0.002 })
+    thud(a, 0.16, 150, 0.14, 0.1)
+    click(a, 0.17, 1100, 0.08, 0.03)
+  },
+
+  // Dry hinges under a heavy lid, which comes to rest against its stay.
+  lidCreak(a) {
+    creak(a, 0, 0.9, 0.06, 64)
+    creak(a, 0.15, 0.6, 0.025, 96)
+    noise(a, { filter: 'lowpass', from: 260, dur: 0.8, gain: 0.04, attack: 0.25 })
+    thud(a, 0.86, 110, 0.09, 0.1)
+  },
+
+  // Glass, not metal: thin partials that swell in rather than strike.
+  mirrorChime(a) {
+    tone(a, { from: 1568, dur: 1.8, gain: 0.035, attack: 0.03 })
+    tone(a, { from: 2349.3, at: 0.06, dur: 1.5, gain: 0.022, attack: 0.03 })
+    tone(a, { from: 3136, at: 0.12, dur: 1.1, gain: 0.012, attack: 0.03 })
+    tone(a, { from: 4228, at: 0.12, dur: 0.8, gain: 0.006, attack: 0.03 })
+    noise(a, { filter: 'bandpass', from: 6000, q: 6, dur: 0.5, gain: 0.01, attack: 0.15 })
+  },
 }
 
 export const sfx = {
@@ -168,5 +287,10 @@ export const sfx = {
   // audio is available.
   loop(name: LoopName, on: boolean, gain = 1) {
     setLoop(name, on, gain)
+  },
+  // Turns the clock off on its next beat rather than mid-swing: the tick that
+  // would have come is the silence. sfx.loop('clockTick', true) starts it again.
+  stopTick() {
+    stopTickOnBeat()
   },
 }

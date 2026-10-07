@@ -1,11 +1,14 @@
 import { Frustum, Matrix4, Vector3 } from 'three/webgpu'
 import type { Mesh, PerspectiveCamera } from 'three/webgpu'
 import { beamOn, blocked } from '../ghost/wispBrain'
-import { runtime } from '../runtime'
+import type { GhostDef } from '../room/roomDef'
+import { liveGhosts, runtime } from '../runtime'
+import type { GhostRuntime } from '../runtime'
 import type { PhotoParts } from '../store'
 import { tuning } from '../tuning'
 
 export interface PhotoScore {
+  ghostId: string
   score: number
   quality: number // 0..1
   parts: PhotoParts
@@ -19,20 +22,36 @@ const _v = new Vector3()
 const clamp01 = (x: number) => Math.min(1, Math.max(0, x))
 
 // Scores a shot from scene data at the moment the shutter fires, not from
-// pixels. Returns null when no ghost is visible: that is just a photo.
+// pixels. Every visible ghost is scored and the best one counts: a shot with
+// two in frame is a photo of the better one. Returns null when no ghost is
+// visible: that is just a photo.
 export function scorePhoto(
   camera: PerspectiveCamera,
-  baseScore: number,
+  ghosts: readonly GhostDef[],
   occluders: Mesh[],
 ): PhotoScore | null {
-  const wisp = runtime.wisp
-  if (!wisp.object || wisp.state === 'gone' || wisp.state === 'dissolve') return null
-
   camera.updateMatrixWorld()
   _matrix.multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse)
   _frustum.setFromProjectionMatrix(_matrix, camera.coordinateSystem, camera.reversedDepth)
-  if (!_frustum.containsPoint(wisp.position)) return null
   camera.getWorldPosition(_eye)
+
+  let best: PhotoScore | null = null
+  for (const wisp of liveGhosts()) {
+    const def = ghosts.find((g) => g.id === wisp.id)
+    if (!def) continue
+    const score = scoreGhost(camera, wisp, def.baseScore, occluders)
+    if (score && (!best || score.quality > best.quality)) best = score
+  }
+  return best
+}
+
+function scoreGhost(
+  camera: PerspectiveCamera,
+  wisp: GhostRuntime,
+  baseScore: number,
+  occluders: Mesh[],
+): PhotoScore | null {
+  if (!_frustum.containsPoint(wisp.position)) return null
   if (blocked(_eye, wisp.position, occluders)) return null
 
   const lit = clamp01(beamOn(wisp.position, runtime.beam, occluders))
@@ -53,5 +72,10 @@ export function scorePhoto(
       tuning.photoWeightClose * close +
       tuning.photoWeightSharp * sharp,
   )
-  return { score: Math.round(baseScore * quality), quality, parts: { lit, framed, close, sharp } }
+  return {
+    ghostId: wisp.id,
+    score: Math.round(baseScore * quality),
+    quality,
+    parts: { lit, framed, close, sharp },
+  }
 }

@@ -1,11 +1,13 @@
-import { useEffect, useState } from 'react'
 import { applyItemToFocus, clueNote, heldPrompt, itemLabel, promptFor } from '../interaction/actions'
 import { useHud } from '../interaction/hudState'
+import { useRoomDef } from '../room/RoomContext'
 import { useGame } from '../store'
-import { tuning } from '../tuning'
+import { CompleteCard } from './CompleteCard'
+import { richParts, useGuide } from './guide'
 import './hud.css'
 
-// Crosshair, prompt, messages, battery, item bar and the level-complete card.
+// Crosshair, prompt, guide, messages, battery and item bar; the room-complete
+// card takes over when the exit opens.
 // Nothing here takes pointer events except real buttons.
 export function Hud() {
   const touch = useGame((s) => s.touch)
@@ -14,11 +16,6 @@ export function Hud() {
   const focus = useGame((s) => s.focus)
   const held = useGame((s) => s.held)
   const hasLight = useGame((s) => s.hasLight)
-  const batteryLevel = useGame((s) => s.batteryLevel)
-  const spares = useGame((s) => s.spares)
-  const swapping = useGame((s) => s.swapping)
-  const lightOn = useGame((s) => s.lightOn)
-  const lightMode = useGame((s) => s.lightMode)
   const clues = useGame((s) => s.clues)
   // Subscribed so the prompt and the note re-evaluate when the chain moves on.
   useGame((s) => s.flags)
@@ -27,30 +24,18 @@ export function Hud() {
   const message = useHud((s) => s.message)
   const messageId = useHud((s) => s.messageId)
 
-  // The UV hint waits a while after the flashlight is found, so the player
-  // gets a chance to look around first.
-  const [uvHintDue, setUvHintDue] = useState(false)
-  useEffect(() => {
-    if (!hasLight) return setUvHintDue(false)
-    const timer = window.setTimeout(() => setUvHintDue(true), tuning.uvHintDelay * 1000)
-    return () => window.clearTimeout(timer)
-  }, [hasLight])
+  const label = useGuide()
 
   if (uiLock === 'complete') return <CompleteCard />
+  // The intro is a cut: nothing on screen until control returns.
+  if (uiLock === 'intro') return null
 
+  // Every other lock (padlock, symbol lock, note, photo card) is a modal over
+  // the game: no crosshair, prompt, guide or message under it.
   const aiming = !uiLock && !cameraRaised
   const prompt = aiming ? (held ? heldPrompt(held) : promptFor(focus)) : null
   const note = hasLight && clues.length > 0 ? clueNote() : null
-  const guide = uiLock ? null : guideFor({
-        touch,
-        hasLight,
-        batteryLevel,
-        spares,
-        swapping,
-        clueFound: clues.length > 0,
-        uvActive: lightOn && lightMode === 'uv',
-        uvHintDue,
-      })
+  const guide = uiLock ? null : label
 
   return (
     <div className={`hud${touch ? ' is-touch' : ''}`}>
@@ -61,9 +46,15 @@ export function Hud() {
           className={`hud-guide print-paper${guide.urgent ? ' is-urgent' : ''}`}
           role="status"
         >
-          {guide.before}
-          {guide.key && <kbd>{guide.key}</kbd>}
-          {guide.after}
+          {richParts(guide.text).map((part, i) =>
+            part.kind === 'key' ? (
+              <kbd key={i}>{part.text}</kbd>
+            ) : part.kind === 'em' ? (
+              <em key={i}>{part.text}</em>
+            ) : (
+              part.text
+            ),
+          )}
         </div>
       )}
       {prompt && (
@@ -88,79 +79,6 @@ export function Hud() {
   )
 }
 
-interface Guide {
-  id: string // changes when the text does, so the label re-enters
-  before: string
-  key?: string // a key shown as a seal between `before` and `after`
-  after?: string
-  urgent?: boolean
-}
-
-// The standing instruction for what to do next, or null when nothing is
-// needed: first find the flashlight, then keep it powered, then (until the
-// painting's code is found) learn about the UV light.
-function guideFor(s: {
-  touch: boolean
-  hasLight: boolean
-  batteryLevel: string
-  spares: number
-  swapping: boolean
-  clueFound: boolean
-  uvActive: boolean
-  uvHintDue: boolean
-}): Guide | null {
-  if (!s.hasLight) {
-    return s.touch
-      ? { id: 'find-light', before: 'Too dark to see. Find the flashlight on the floor and tap it.' }
-      : {
-          id: 'find-light',
-          before: 'Too dark to see. Find the flashlight on the floor and press ',
-          key: 'E',
-          after: ' to pick it up.',
-        }
-  }
-  const weak = s.batteryLevel === 'low' || s.batteryLevel === 'empty'
-  if (!weak) return uvGuide(s)
-  if (s.swapping) return null
-  const state = s.batteryLevel === 'empty' ? 'Battery dead.' : 'Battery low.'
-  if (s.spares > 0) {
-    return s.touch
-      ? { id: 'swap', urgent: true, before: `${state} Tap the battery button to charge with your spare.` }
-      : {
-          id: 'swap',
-          urgent: true,
-          before: `${state} Press `,
-          key: 'R',
-          after: ' to charge it with your spare pack.',
-        }
-  }
-  return s.touch
-    ? { id: 'find-pack', urgent: true, before: `${state} Find a battery pack, then tap the battery button.` }
-    : {
-        id: 'find-pack',
-        urgent: true,
-        before: `${state} Find a battery pack, then press `,
-        key: 'R',
-        after: ' to charge it.',
-      }
-}
-
-// Where the room's first clue is hidden: in UV light only.
-function uvGuide(s: { touch: boolean; clueFound: boolean; uvActive: boolean; uvHintDue: boolean }): Guide | null {
-  if (s.clueFound) return null
-  if (s.uvActive)
-    return { id: 'uv-sweep', before: 'The UV light shows what the eye cannot. Sweep it slowly across the walls.' }
-  if (!s.uvHintDue) return null
-  return s.touch
-    ? { id: 'uv-switch', before: 'Something may be hidden in this room. Tap the UV button, then sweep the walls.' }
-    : {
-        id: 'uv-switch',
-        before: 'Something may be hidden in this room. Press ',
-        key: 'Q',
-        after: ' for UV light, then sweep the walls.',
-      }
-}
-
 // `true` marks the keys that do nothing until the flashlight is in hand.
 const CONTROLS = [
   ['WASD', 'Move', false],
@@ -176,9 +94,13 @@ const CONTROLS = [
 // Always-on key reference, bottom-left. Desktop only: on touch that corner
 // is the joystick and the buttons carry their own labels.
 function Controls({ hasLight }: { hasLight: boolean }) {
+  const uv = useRoomDef().lights?.uv !== false
+  const shown = CONTROLS.filter(
+    ([key, , needsLight]) => (hasLight || !needsLight) && (uv || key !== 'Q'),
+  )
   return (
     <dl className="hud-controls print-ink" aria-label="Controls">
-      {CONTROLS.filter(([, , needsLight]) => hasLight || !needsLight).map(([key, action]) => (
+      {shown.map(([key, action]) => (
         <div key={key}>
           <dt>{key}</dt>
           <dd>{action}</dd>
@@ -234,6 +156,9 @@ function Battery() {
 
 function ItemBar() {
   const items = useGame((s) => s.items)
+  const { pickups } = useRoomDef()
+  // Anything picked up with a note attached is paper.
+  const isNote = (id: string) => pickups.some((p) => p.item === id && p.note)
   const held = Object.keys(items).filter((id) => items[id] > 0)
   if (held.length === 0) return null
   return (
@@ -250,7 +175,13 @@ function ItemBar() {
             applyItemToFocus(id)
           }}
         >
-          {id === 'key' ? <KeyIcon /> : <span className="hud-item-dot" />}
+          {id.endsWith('key') ? (
+            <KeyIcon />
+          ) : isNote(id) ? (
+            <LetterIcon />
+          ) : (
+            <span className="hud-item-dot" />
+          )}
           <span>{itemLabel(id)}</span>
           {items[id] > 1 && <em>×{items[id]}</em>}
         </button>
@@ -274,30 +205,18 @@ function KeyIcon() {
   )
 }
 
-function CompleteCard() {
-  const photos = useGame((s) => s.photos)
-  const best = photos.reduce<(typeof photos)[number] | null>(
-    (top, p) => (!top || p.score > top.score ? p : top),
-    null,
-  )
+// A sheet folded in three, one corner turned.
+function LetterIcon() {
   return (
-    <div className="hud-complete" role="dialog" aria-modal="true" aria-label="Level complete">
-      <div className="hud-complete-card print-paper">
-        <p className="hud-complete-eyebrow">3.17 · the study</p>
-        <h2>Level complete</h2>
-        <p className="hud-complete-line">The lock turns. Cold air from the hallway.</p>
-        {best && (
-          <figure className="hud-complete-photo">
-            <img src={best.url} alt="Your best photograph" />
-            <figcaption>
-              Best photograph <strong>{Math.round(best.score)}</strong>
-            </figcaption>
-          </figure>
-        )}
-        <button type="button" className="hud-complete-btn" onClick={() => window.location.reload()}>
-          Play again
-        </button>
-      </div>
-    </div>
+    <svg viewBox="0 0 20 16" width="20" height="16" aria-hidden="true">
+      <path
+        d="M2 2h12l4 4v8H2zM14 2v4h4M5 7.5h7M5 10.5h10"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinejoin="round"
+        strokeLinecap="round"
+      />
+    </svg>
   )
 }

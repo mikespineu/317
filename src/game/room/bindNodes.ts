@@ -1,35 +1,56 @@
 import { Box3, Vector3 } from 'three/webgpu'
 import type { Mesh, Object3D } from 'three/webgpu'
 import type { Aabb } from '../runtime'
-import type { RoomDef } from './level0.def'
+import type { RoomDef } from './roomDef'
 
 export interface BoundRoom {
   scene: Object3D
-  nodes: Map<string, Object3D> // every named node, including detached ghosts
+  // Every named node, including detached ghosts. Static scenery that
+  // mergeStatic merged away is no longer here.
+  nodes: Map<string, Object3D>
   interactables: Map<string, Object3D> // Interact_*, and any node the definition lists
   pickups: Map<string, Object3D> // Pickup_*
   props: Map<string, Object3D> // throwable props named in the definition
   raycastTargets: Object3D[] // interactables + pickups + throwable props, for the interaction ray
-  occluders: Mesh[] // solid scenery, for line-of-sight raycasts
+  // Solid scenery, for line-of-sight raycasts. After mergeStatic some are
+  // undrawn world-space copies of merged scenery: use them for rays only.
+  occluders: Mesh[]
   colliders: Aabb[] // Collider_* as world-space XZ boxes
   spawns: Map<string, Vector3> // Spawn_* world positions
   mirror: Mesh | null
+  mirrorOnly: Mesh[] // MirrorOnly_*: drawn only into the mirror's reflection
   ghosts: Map<string, Mesh> // ghost meshes by node name, taken out of the scene
 }
 
 // Floor and ceiling would cover the whole room on the XZ plane.
 const SKIP_XZ = new Set(['Collider_Floor', 'Collider_Ceiling'])
+export const MIRROR_ONLY = 'MirrorOnly_'
 const NOT_SOLID = new Set(['Window_Glass'])
 
-function requiredNodes(def: RoomDef) {
-  const names = new Set<string>([def.spawn, def.mirror.node, def.exit.node])
+// Every node name the definition mentions.
+export function requiredNodes(def: RoomDef) {
+  const names = new Set<string>([def.spawn, def.exit.node])
+  if (def.mirror) {
+    names.add(def.mirror.node)
+    if (def.mirror.clue) names.add(def.mirror.clue.node)
+  }
+  if (def.intro) names.add(def.intro.look)
+  for (const door of def.intro?.doors ?? []) names.add(door)
+  // Disabled entries are validated too, so the return visit only flips flags.
   for (const i of def.interactables) {
     names.add(i.node)
-    if ('lock' in i) names.add(i.lock.mesh)
+    if (i.lock) names.add(i.lock.mesh)
   }
   for (const p of def.pickups) names.add(p.node)
   for (const p of def.props) names.add(p.node)
-  for (const g of def.ghosts) names.add(g.mesh).add(g.spawn)
+  for (const g of def.ghosts) {
+    names.add(g.mesh).add(g.spawn)
+    if (g.drops) names.add(g.drops.pickup)
+  }
+  if (def.emergencyPack) {
+    names.add(def.emergencyPack.pickup)
+    if (def.emergencyPack.spawn) names.add(def.emergencyPack.spawn)
+  }
   return names
 }
 
@@ -50,6 +71,7 @@ export function bindNodes(scene: Object3D, def: RoomDef): BoundRoom {
     colliders: [],
     spawns: new Map(),
     mirror: null,
+    mirrorOnly: [],
     ghosts: new Map(),
   }
   const ghostNames = new Set<string>(def.ghosts.map((g) => g.mesh))
@@ -100,8 +122,14 @@ export function bindNodes(scene: Object3D, def: RoomDef): BoundRoom {
     if (!part && throwables.has(name)) room.props.set(name, node)
     if (!mesh) return
 
-    if (name === def.mirror.node) {
+    if (name === def.mirror?.node) {
       room.mirror = mesh
+      return
+    }
+    // Hidden and shadowless here; Mirror shows them only while the reflection renders.
+    if (name.startsWith(MIRROR_ONLY)) {
+      mesh.visible = false
+      room.mirrorOnly.push(mesh)
       return
     }
     mesh.castShadow = true
@@ -133,6 +161,7 @@ export function bindNodes(scene: Object3D, def: RoomDef): BoundRoom {
       colliders: room.colliders.map((c) => c.name),
       spawns: [...room.spawns.keys()],
       mirror: room.mirror?.name ?? null,
+      mirrorOnly: room.mirrorOnly.map((m) => m.name),
       ghosts: [...room.ghosts.keys()],
     })
   }
