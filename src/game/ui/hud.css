@@ -1,0 +1,451 @@
+/* HUD: understated on a near-black scene. Warm cream text, brass accents. */
+.hud {
+  position: absolute;
+  inset: 0;
+  z-index: 10;
+  pointer-events: none;
+  user-select: none;
+  -webkit-user-select: none;
+  font-family: system-ui, sans-serif;
+  color: #e8e2d0;
+  --hud-serif: 'Iowan Old Style', 'Palatino Linotype', Palatino, 'Book Antiqua', Georgia, serif;
+  --hud-shadow: 0 1px 2px rgba(0, 0, 0, 0.9), 0 0 10px rgba(0, 0, 0, 0.7);
+}
+
+/* crosshair */
+.hud-crosshair {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 4px;
+  height: 4px;
+  margin: -2px 0 0 -2px;
+  border-radius: 50%;
+  background: rgba(232, 226, 208, 0.55);
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.45);
+  transition:
+    transform 0.14s ease-out,
+    background-color 0.14s;
+}
+
+.hud-crosshair.is-focused {
+  transform: scale(2.1);
+  background: #f2c14e;
+}
+
+/* prompt and message */
+.hud-prompt,
+.hud-message {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  max-width: min(80vw, 30rem);
+  text-align: center;
+  white-space: nowrap;
+  text-shadow: var(--hud-shadow);
+}
+
+.hud-prompt {
+  top: calc(50% + 26px);
+  display: flex;
+  align-items: center;
+  gap: 0.55em;
+  font-size: 14px;
+  letter-spacing: 0.03em;
+  animation: hud-rise 0.16s ease-out both;
+}
+
+.hud-prompt.is-hint {
+  font-family: var(--hud-serif);
+  font-style: italic;
+  color: rgba(232, 226, 208, 0.6);
+}
+
+.hud-prompt kbd {
+  display: grid;
+  place-items: center;
+  min-width: 1.7em;
+  height: 1.7em;
+  padding: 0 0.35em;
+  border: 1px solid rgba(242, 193, 78, 0.7);
+  border-radius: 4px;
+  font: 600 12px/1 system-ui, sans-serif;
+  color: #f2c14e;
+  background: rgba(10, 8, 12, 0.6);
+  text-shadow: none;
+}
+
+.hud-message {
+  top: calc(50% + 62px);
+  font-family: var(--hud-serif);
+  font-style: italic;
+  font-size: 16px;
+  color: #efe3c2;
+  white-space: normal;
+  animation: hud-message 0.3s ease-out both;
+}
+
+/* battery, top-left */
+.hud-status {
+  position: absolute;
+  top: max(14px, env(safe-area-inset-top));
+  left: max(16px, env(safe-area-inset-left));
+  display: grid;
+  justify-items: start;
+  gap: 10px;
+}
+
+.hud-battery {
+  --lamp: #f2c14e;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 12px;
+  letter-spacing: 0.06em;
+  text-shadow: var(--hud-shadow);
+  transition: opacity 0.2s;
+}
+
+.hud-battery.is-uv {
+  --lamp: #b48cff;
+}
+
+.hud-battery.is-off {
+  opacity: 0.55;
+}
+
+.hud-battery-shell {
+  position: relative;
+  display: flex;
+  gap: 2px;
+  width: 38px;
+  height: 17px;
+  padding: 2px;
+  border: 1.5px solid rgba(232, 226, 208, 0.75);
+  border-radius: 4px;
+  background: rgba(8, 6, 10, 0.45);
+}
+
+.hud-battery-shell::after {
+  content: '';
+  position: absolute;
+  right: -5px;
+  top: 4px;
+  width: 3px;
+  height: 6px;
+  border-radius: 0 2px 2px 0;
+  background: rgba(232, 226, 208, 0.75);
+}
+
+.hud-battery-shell i {
+  flex: 1;
+  border-radius: 1.5px;
+  background: rgba(232, 226, 208, 0.08);
+  transition:
+    background-color 0.25s,
+    box-shadow 0.25s;
+}
+
+.hud-battery-shell i.is-lit {
+  background: var(--lamp);
+  box-shadow: 0 0 6px color-mix(in srgb, var(--lamp) 60%, transparent);
+}
+
+.hud-battery.is-low .hud-battery-shell i.is-lit {
+  background: #e8793a;
+  box-shadow: 0 0 6px rgba(232, 121, 58, 0.6);
+}
+
+.hud-battery.is-low .hud-battery-shell,
+.hud-battery.is-empty .hud-battery-shell {
+  animation: hud-flash 0.9s steps(2, jump-none) infinite;
+}
+
+.hud-battery.is-empty .hud-battery-shell {
+  border-color: #d8553f;
+}
+
+.hud-battery.is-empty .hud-battery-shell::after {
+  background: #d8553f;
+}
+
+/* Swapping: the cells fill one after another while the light is out. */
+.hud-battery.is-swapping .hud-battery-shell {
+  animation: none;
+  border-color: rgba(232, 226, 208, 0.75);
+}
+
+.hud-battery.is-swapping .hud-battery-shell i {
+  background: var(--lamp);
+  box-shadow: none;
+  animation: hud-fill 0.6s linear infinite;
+}
+
+.hud-battery.is-swapping .hud-battery-shell i:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+.hud-battery.is-swapping .hud-battery-shell i:nth-child(3) {
+  animation-delay: 0.4s;
+}
+
+.hud-battery-mode {
+  margin-left: 2px;
+  font-weight: 600;
+  color: var(--lamp);
+}
+
+.hud-battery-mode:empty {
+  display: none;
+}
+
+.hud-battery-spares {
+  padding: 1px 6px;
+  border-radius: 999px;
+  font-weight: 600;
+  color: #14100a;
+  background: rgba(232, 226, 208, 0.85);
+  text-shadow: none;
+}
+
+.hud-battery-text {
+  color: rgba(232, 226, 208, 0.7);
+}
+
+.hud-note {
+  max-width: 15rem;
+  font-family: var(--hud-serif);
+  font-style: italic;
+  font-size: 13px;
+  color: rgba(200, 176, 255, 0.75);
+  text-shadow: var(--hud-shadow);
+  animation: hud-rise 0.5s ease-out both;
+}
+
+/* item bar: bottom-centre on desktop, under the battery on touch so it
+   stays clear of the joystick and the buttons */
+.hud-items {
+  display: flex;
+  gap: 8px;
+}
+
+.hud:not(.is-touch) > .hud-items {
+  position: absolute;
+  left: 50%;
+  bottom: max(18px, env(safe-area-inset-bottom));
+  transform: translateX(-50%);
+}
+
+.hud-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 40px;
+  padding: 0 14px;
+  border: 1px solid rgba(242, 193, 78, 0.45);
+  border-radius: 8px;
+  font: 13px/1 system-ui, sans-serif;
+  letter-spacing: 0.05em;
+  text-transform: capitalize;
+  color: #f2c14e;
+  background: rgba(12, 9, 14, 0.62);
+  pointer-events: auto;
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  animation: hud-rise 0.3s ease-out both;
+}
+
+.hud-item span {
+  color: #e8e2d0;
+}
+
+.hud-item em {
+  font-style: normal;
+  opacity: 0.7;
+}
+
+.hud-item:active {
+  background: rgba(242, 193, 78, 0.22);
+}
+
+.hud-item:focus-visible {
+  outline: 2px solid #f2c14e;
+  outline-offset: 2px;
+}
+
+.hud-item-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+/* controls reference, bottom-left */
+.hud-controls {
+  position: absolute;
+  left: max(16px, env(safe-area-inset-left));
+  bottom: max(16px, env(safe-area-inset-bottom));
+  margin: 0;
+  display: grid;
+  gap: 3px;
+  font: 11px/1.3 ui-monospace, SFMono-Regular, Menlo, monospace;
+  color: #e8e2d0;
+  opacity: 0.55;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.9);
+}
+
+.hud-controls > div {
+  display: grid;
+  grid-template-columns: 3.4em auto;
+  gap: 0.8em;
+}
+
+.hud-controls dt {
+  color: #f2c14e;
+  text-align: right;
+  letter-spacing: 0.04em;
+}
+
+.hud-controls dd {
+  margin: 0;
+}
+
+/* level complete */
+.hud-complete {
+  position: absolute;
+  inset: 0;
+  z-index: 40;
+  display: grid;
+  place-items: center;
+  padding: max(1rem, env(safe-area-inset-top)) max(1rem, env(safe-area-inset-right))
+    max(1rem, env(safe-area-inset-bottom)) max(1rem, env(safe-area-inset-left));
+  font-family: system-ui, sans-serif;
+  color: #e8e2d0;
+  background: radial-gradient(ellipse at center, rgba(14, 10, 16, 0.7), rgba(3, 2, 5, 0.95) 75%);
+  pointer-events: auto;
+  animation: hud-fade 0.8s ease-out both;
+}
+
+.hud-complete-card {
+  display: grid;
+  justify-items: center;
+  gap: clamp(6px, 2vh, 14px);
+  max-width: 26rem;
+  max-height: 100%;
+  text-align: center;
+}
+
+.hud-complete-eyebrow {
+  margin: 0;
+  font-size: 11px;
+  letter-spacing: 0.32em;
+  text-transform: uppercase;
+  color: rgba(242, 193, 78, 0.8);
+}
+
+.hud-complete-card h2 {
+  margin: 0;
+  font: 400 clamp(2rem, 9vh, 3.4rem) / 1.05 'Iowan Old Style', 'Palatino Linotype', Palatino,
+    'Book Antiqua', Georgia, serif;
+  color: #f4ead0;
+}
+
+.hud-complete-line {
+  margin: 0;
+  font: italic 15px/1.4 'Iowan Old Style', 'Palatino Linotype', Palatino, Georgia, serif;
+  color: rgba(232, 226, 208, 0.7);
+}
+
+.hud-complete-photo {
+  display: grid;
+  justify-items: center;
+  gap: 6px;
+  margin: 4px 0 0;
+  padding: 6px 6px 8px;
+  background: #efe7d2;
+  color: #2a2118;
+  transform: rotate(-2deg);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
+}
+
+.hud-complete-photo img {
+  display: block;
+  height: clamp(70px, 24vh, 150px);
+  width: auto;
+  max-width: 60vw;
+  background: #111;
+}
+
+.hud-complete-photo figcaption {
+  font-size: 12px;
+  letter-spacing: 0.06em;
+}
+
+.hud-complete-btn {
+  min-height: 44px;
+  margin-top: 6px;
+  padding: 0 2rem;
+  border: 1px solid #f2c14e;
+  border-radius: 999px;
+  font: 14px/1 system-ui, sans-serif;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #f2c14e;
+  background: rgba(242, 193, 78, 0.08);
+  cursor: pointer;
+}
+
+.hud-complete-btn:hover,
+.hud-complete-btn:active {
+  color: #14100a;
+  background: #f2c14e;
+}
+
+.hud-complete-btn:focus-visible {
+  outline: 2px solid #f4ead0;
+  outline-offset: 3px;
+}
+
+@keyframes hud-rise {
+  from {
+    opacity: 0;
+    translate: 0 4px;
+  }
+}
+
+@keyframes hud-message {
+  from {
+    opacity: 0;
+    translate: 0 6px;
+  }
+}
+
+@keyframes hud-fade {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes hud-flash {
+  50% {
+    opacity: 0.3;
+  }
+}
+
+@keyframes hud-fill {
+  0%,
+  100% {
+    opacity: 0.15;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hud-battery-shell,
+  .hud-battery-shell i {
+    animation: none !important;
+  }
+}

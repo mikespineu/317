@@ -1,0 +1,125 @@
+.shell {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  color: #e9dcc0;
+}
+
+.shell p {
+  margin: 0;
+}
+
+.shell-title {
+  font-size: clamp(1.25rem, 3.2vw, 1.75rem);
+  letter-spacing: 0.04em;
+  text-wrap: balance;
+}
+
+.shell-note {
+  font-size: 0.875rem;
+  opacity: 0.6;
+}
+
+/* Portrait prompt: covers everything, including open modals. */
+.shell-rotate {
+  position: absolute;
+  inset: 0;
+  z-index: 100;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: 0.6rem;
+  padding: calc(env(safe-area-inset-top, 0px) + 1.5rem) 1.5rem
+    calc(env(safe-area-inset-bottom, 0px) + 1.5rem);
+  background: #07060a;
+  text-align: center;
+  pointer-events: auto;
+}
+
+.shell-rotate svg {
+  width: 88px;
+  height: 88px;
+  margin-bottom: 0.5rem;
+  color: #f2c14e;
+}
+
+.shell-rotate-phone {
+  transform-origin: 32px 28px;
+  animation: shell-rotate-phone 2.4s ease-in-out infinite;
+}
+
+@keyframes shell-rotate-phone {
+  0%,
+  20% {
+    transform: rotate(0deg);
+  }
+  60%,
+  100% {
+    transform: rotate(-90deg);
+  }
+}
+
+/* Desktop: click anywhere on it to take the pointer lock. */
+.shell-pause {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 1.5rem;
+  background: radial-gradient(ellipse at center, rgba(7, 6, 10, 0.55), rgba(7, 6, 10, 0.86));
+  cursor: pointer;
+  pointer-events: auto;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.shell-card {
+  display: grid;
+  justify-items: center;
+  gap: 0.35rem;
+  text-align: center;
+}
+
+.shell-kicker {
+  font-size: 0.8rem;
+  letter-spacing: 0.35em;
+  margin-right: -0.35em;
+  color: #f2c14e;
+}
+
+.shell-controls {
+  display: grid;
+  gap: 0.4rem;
+  margin: 1.4rem 0 0;
+  padding-top: 1.2rem;
+  border-top: 1px solid rgba(233, 220, 192, 0.18);
+  font-size: 0.875rem;
+  text-align: left;
+}
+
+.shell-controls > div {
+  display: grid;
+  grid-template-columns: 7.5rem auto;
+  gap: 1rem;
+  align-items: baseline;
+}
+
+.shell-controls dt {
+  justify-self: end;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.8rem;
+  letter-spacing: 0.06em;
+  color: #f2c14e;
+  white-space: nowrap;
+}
+
+.shell-controls dd {
+  margin: 0;
+  opacity: 0.75;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .shell-rotate-phone {
+    animation: none;
+  }
+}

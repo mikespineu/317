@@ -1,0 +1,179 @@
+/* Photo card: an aged cream print with pencilled notes, plum and teal ink. */
+.photo-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 30;
+  display: grid;
+  place-items: center;
+  padding: max(16px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right))
+    max(16px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
+  pointer-events: auto;
+  cursor: pointer;
+  user-select: none;
+  -webkit-user-select: none;
+  background: rgba(6, 4, 12, 0.4);
+  /* The frozen frame holds for a beat before the card arrives. */
+  animation: photo-dim 0.3s ease-out 0.2s both;
+  --photo-cream: #e9dfc6;
+  --photo-plum: #432a40;
+  --photo-teal: #2f6f6c;
+  --photo-serif: 'Iowan Old Style', 'Palatino Linotype', Palatino, 'Book Antiqua', Georgia, serif;
+}
+
+.photo-card {
+  display: flex;
+  align-items: stretch;
+  gap: clamp(10px, 2.4vmin, 20px);
+  width: min(88vw, 620px, 150vh);
+  margin: 0;
+  padding: clamp(8px, 2vmin, 14px);
+  color: var(--photo-plum);
+  font-family: var(--photo-serif);
+  background:
+    radial-gradient(ellipse at 20% 10%, rgba(255, 250, 235, 0.55), transparent 60%),
+    radial-gradient(ellipse at 90% 100%, rgba(120, 90, 60, 0.22), transparent 55%),
+    var(--photo-cream);
+  border-radius: 3px;
+  box-shadow:
+    0 0 0 1px rgba(67, 42, 64, 0.25),
+    0 18px 40px rgba(0, 0, 0, 0.65),
+    0 2px 6px rgba(0, 0, 0, 0.5);
+  transform: rotate(-2.2deg);
+  animation: photo-slide 0.42s cubic-bezier(0.2, 0.9, 0.25, 1.05) 0.25s both;
+}
+
+.photo-card.is-empty {
+  transform: rotate(1.6deg);
+}
+
+.photo-print {
+  position: relative;
+  flex: 1.55 1 0;
+  min-width: 0;
+  align-self: center;
+  background: #0b0910;
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.6);
+}
+
+.photo-print img,
+.photo-blank {
+  display: block;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+  /* A slightly faded print. */
+  filter: sepia(0.18) contrast(1.05);
+}
+
+.photo-best {
+  position: absolute;
+  top: 8px;
+  right: -6px;
+  padding: 2px 10px 3px;
+  color: var(--photo-cream);
+  font-size: clamp(11px, 2.4vmin, 14px);
+  font-style: italic;
+  letter-spacing: 0.08em;
+  background: var(--photo-plum);
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.5);
+  transform: rotate(6deg);
+}
+
+.photo-notes {
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: clamp(4px, 1.4vmin, 10px);
+  padding: 2px 6px 2px 0;
+}
+
+.photo-total {
+  display: flex;
+  align-items: baseline;
+  gap: 0.4em;
+  margin: 0;
+  border-bottom: 1px solid rgba(67, 42, 64, 0.3);
+  padding-bottom: clamp(2px, 1vmin, 6px);
+}
+
+.photo-total strong {
+  font-size: clamp(28px, 8vmin, 46px);
+  font-weight: 600;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.photo-total span {
+  font-size: clamp(11px, 2.4vmin, 14px);
+  font-style: italic;
+  opacity: 0.75;
+}
+
+.photo-parts {
+  display: grid;
+  gap: clamp(3px, 1vmin, 7px);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.photo-parts li {
+  display: grid;
+  grid-template-columns: 4.2em 1fr;
+  align-items: center;
+  gap: 8px;
+  font-size: clamp(11px, 2.5vmin, 14px);
+  letter-spacing: 0.02em;
+}
+
+.photo-bar {
+  display: block;
+  height: 6px;
+  overflow: hidden;
+  background: rgba(67, 42, 64, 0.16);
+  border-radius: 3px;
+}
+
+.photo-bar-fill {
+  display: block;
+  width: 100%;
+  height: 100%;
+  background: var(--photo-teal);
+  border-radius: 3px;
+  transform-origin: left center;
+}
+
+.photo-nothing {
+  margin: 0;
+  font-size: clamp(16px, 4.4vmin, 24px);
+  font-style: italic;
+}
+
+.photo-hint {
+  margin: 0;
+  font-size: clamp(10px, 2.1vmin, 12px);
+  font-style: italic;
+  opacity: 0.6;
+}
+
+@keyframes photo-dim {
+  from {
+    background-color: rgba(6, 4, 12, 0);
+  }
+}
+
+@keyframes photo-slide {
+  from {
+    opacity: 0;
+    transform: translateY(60vh) rotate(7deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .photo-layer,
+  .photo-card {
+    animation-duration: 0.01s;
+  }
+}

@@ -519,6 +519,14 @@ def build_props():
      .cyl((0, 0, 0.16), 0.003, 0.003, 0.012, "Z", "Clay_Dark", 6)
      .finish("Prop_Candle", DESK + Vector((-0.5, 0.1, 0.78)), "Furniture"))
 
+    # Second battery pack in plain sight on the desk, right of the drawer;
+    # origin base centre, 0.1 wide along X so its label faces the room.
+    (Mesh()
+     .box((-0.05, -0.015, 0), (0.05, 0.015, 0.06), "Clay_Dark", 0.005)
+     .box((-0.03, -0.016, 0.015), (0.03, 0.016, 0.045), "Card_Cream")  # label
+     .box((-0.056, -0.008, 0.02), (-0.05, 0.008, 0.04), "Metal_Brass")  # terminal
+     .finish("Pickup_Battery_Desk", DESK + Vector((0.45, -0.2, 0.78)), "Pickups"))
+
 
 WISP_SPAWN = Vector((-0.5, -0.3, 1.5))
 

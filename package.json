@@ -6,8 +6,11 @@
     "#/*": "./src/*"
   },
   "scripts": {
-    "dev": "vite dev --port 8000 --strictPort",
+    "assets": "node scripts/copy-assets.mjs",
+    "predev": "npm run assets",
+    "dev": "vite dev --port 9000 --strictPort",
     "generate-routes": "tsr generate",
+    "prebuild": "npm run assets",
     "build": "vite build",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit"
@@ -19,6 +22,7 @@
     "@supabase/supabase-js": "^2.117.2",
     "@tanstack/react-router": "1.170.41",
     "@tanstack/react-start": "1.168.60",
+    "leva": "^0.10.1",
     "nitro": "3.0.260610-beta",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",

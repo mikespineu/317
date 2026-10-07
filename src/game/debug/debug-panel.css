@@ -1,0 +1,17 @@
+/* Host of the leva panel. Leva positions itself with `position: fixed` 10px
+   from the top right; the transform makes this box its containing block, so
+   the panel stays inside the safe area on a notched phone in landscape. */
+.debug-panel-host {
+  position: fixed;
+  top: env(safe-area-inset-top, 0px);
+  right: env(safe-area-inset-right, 0px);
+  bottom: env(safe-area-inset-bottom, 0px);
+  left: env(safe-area-inset-left, 0px);
+  z-index: 1000;
+  transform: translateZ(0);
+  pointer-events: none;
+}
+
+.debug-panel-host > * {
+  pointer-events: auto;
+}

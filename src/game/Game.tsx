@@ -1,45 +1,42 @@
-import { useEffect } from 'react'
 import { Canvas, extend } from '@react-three/fiber'
 import * as THREE from 'three/webgpu'
 import { Level0 } from './Level0'
+import { CameraOverlay } from './camera/CameraOverlay'
+import { DebugPanel } from './debug/DebugPanel'
+import { DEBUG } from './debug'
+import { TouchControls } from './player/touchInput'
+import { PadlockUI } from './puzzle/PadlockUI'
+import { createRenderer } from './renderer/createRenderer'
+import { quality } from './renderer/quality'
+import { Hud } from './ui/Hud'
 import { useGame } from './store'
+import { PhotoCard } from './ui/PhotoCard'
+import { RotatePrompt } from './ui/RotatePrompt'
 
 // Register the three/webgpu classes (node materials included) with R3F.
 extend(THREE as any)
 
 export default function Game() {
-  const lightOn = useGame((s) => s.lightOn)
-  const lightMode = useGame((s) => s.lightMode)
-
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.code === 'KeyF') useGame.getState().toggleLight()
-      if (e.code === 'KeyQ') useGame.getState().switchLightMode()
-    }
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
-  }, [])
-
+  // resetLevel bumps epoch; the new key remounts the whole scene.
+  const epoch = useGame((s) => s.epoch)
+  // The `game` class is a hook for the input code, not a style.
   return (
-    <div className="fixed inset-0 touch-none">
+    <div className="game fixed inset-0 touch-none">
       <Canvas
         shadows
-        camera={{ position: [0, 1.6, 2.2], rotation: [0, 0, 0], fov: 70 }}
-        // WebGPURenderer uses WebGPU where available and falls back to WebGL 2.
-        gl={async (props) => {
-          const renderer = new THREE.WebGPURenderer(props as any)
-          await renderer.init()
-          return renderer
-        }}
+        dpr={[1, quality.dpr]}
+        camera={{ position: [0, 1.6, 1.8], fov: 70, near: 0.05, far: 30 }}
+        gl={createRenderer}
       >
-        <Level0 />
+        <Level0 key={epoch} />
       </Canvas>
-      <div className="pointer-events-none absolute bottom-4 left-4 text-sm opacity-80">
-        Light: {lightOn ? lightMode : 'off'} · F on/off · Q white/UV
-      </div>
-      <div className="absolute inset-0 hidden place-content-center bg-ink text-center portrait-touch:grid">
-        Rotate your device to landscape
-      </div>
+      <CameraOverlay />
+      <Hud />
+      <TouchControls />
+      <PadlockUI />
+      <PhotoCard />
+      <RotatePrompt />
+      {DEBUG && <DebugPanel />}
     </div>
   )
 }
