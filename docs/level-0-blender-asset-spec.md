@@ -4,28 +4,30 @@ Oct 7, 2026 · @Michał Kręcisz
 
 ## Style guide
 
-Level 0 is a small study at night, built as a miniature diorama: real-world sizes so movement feels right, but materials and details that look hand-made, like a dollhouse room you are standing inside.
+Level 0 is a small study at night, drawn like a woodblock print (ukiyo-e): real-world sizes so movement feels right, but flat colour, bold simple shapes and ink lines, like a print you are standing inside. This replaces the earlier miniature-diorama direction (Oct 7, 2026).
 
 **Proportions**
 
 - Real-world sizes for anything the player walks around or reaches: doors, desk height, ceiling.
 - Details slightly oversized and chunky: thick frames, big knobs and handles, fat book spines, rounded edges.
-- Few, simple shapes per object. Bevels on every visible edge so light catches them.
+- Few, large, simple shapes per object. The outline pass draws a line wherever depth bends sharply, so fussy detail and tiny bevels turn into noise. Keep edges crisp and bevels small.
 
-**Materials that sell the miniature look**
+**Materials that sell the print look**
 
-- Painted wood with soft brush texture, slightly uneven colour.
-- Card and paper for books, labels and the painting canvas.
-- Felt or fabric for the rug and chair seat.
-- Clay-like matte surfaces for small props.
-- Visible seams where parts meet, as if glued together.
-- Almost no gloss, except the mirror, the key and the flashlight lens.
+- One flat colour per material, taken from the palette below. No gradients and no baked highlights: the game turns light into a few flat tones and draws the outlines itself.
+- Surface character comes from colour choice, not texture: dark walnut wood, cream paper for books and the canvas, dusty teal cloth for the rug and chair seat.
+- At most a faint brush or paper grain in the texture. Hatching and ink lines are added by the game, not painted.
+- No gloss, except the mirror, the key and the flashlight lens.
 
-**Palette**
+**Palette** (defined in `src/styles.css`, and mirrored in the shaders)
 
-- Base: muted, desaturated colours: deep plum, dusty teal, aged cream, dark walnut.
-- Light does the colour work: warm yellow flashlight, cool blue moonlight, violet UV, pale cyan-green ghost.
-- Keep surfaces mid-to-dark so the flashlight beam stands out.
+- Print colours: ink `#0d0c1f`, indigo `#1b2150`, periwinkle `#8f98dc`, paper `#efe4c6`, vermilion `#c63b2b`, saffron `#e2a63a`, matcha `#5d9a7c`.
+- Room surfaces: muted and mid-to-dark, in plum, dusty teal, aged cream and dark walnut, so they sit between the indigo shadow floor and the flashlight highlight.
+- Light does the colour work: warm saffron flashlight, cool blue moonlight, violet UV, pale cyan-green ghost.
+
+**How the look is made**
+
+It is a post-processing pass (`renderer/ukiyo.ts`), not baked into the models: ink outlines from the depth buffer, brightness snapped to about six tone steps, shadows lifted to indigo, paper grain over the frame. So the models only need flat colours, clean silhouettes and sensible depth; there is nothing to author for the outlines.
 
 ## Room layout
 
@@ -45,12 +47,12 @@ Fourteen assets cover Level 0; sizes are starting points in metres (width × dep
 | Door | Door leaf, handle | 1.0 × 0.06 × 2.2 | On the hinge edge, at floor level | Opens with the key | Blockout |
 | Desk | Desk body, drawer, padlock | 1.4 × 0.7 × 0.78 | Body: floor centre; drawer: back centre, slides out | Code lock, holds the key | Blockout |
 | Chair | One object | 0.5 × 0.5 × 0.95 | Floor centre | Character, collision | Blockout |
-| Bookshelf | Frame, 3–4 loose books | 1.0 × 0.35 × 2.0 | Floor centre | Battery pack hiding spot | Blockout |
+| Bookshelf | Frame, 4 loose books (`Book_1` to `Book_4`, throwable props, origin at each base centre) | 1.0 × 0.35 × 2.0 | Floor centre | Battery pack hiding spot; the books can be grabbed and thrown | Blockout |
 | Wall mirror | Frame, mirror surface | 0.7 × 0.05 × 1.1 | Back centre | Reflection test | Blockout |
 | Painting | Frame, canvas | 0.8 × 0.05 × 1.0 | Back centre | UV writing with the drawer code | Blockout |
 | Rug | One object | 2.0 × 1.4 | Floor centre | Character | Blockout |
 | Small props | Two of: candle, inkwell, small clock, lamp | Small | Base centre | Character on the desk and shelf | Blockout |
-| Flashlight (held) | Body, lens | 0.25 long | Where the hand grips; lens along Blender +Y | White and UV light | Blockout |
+| Flashlight (held, and on the floor at the start) | Body, lens | 0.25 long | Where the hand grips; lens along Blender +Y | White and UV light; the game also lays the same model on the floor as the starting pickup | Blockout |
 | Camera (held) | Body, lens, shutter button | 0.14 × 0.07 × 0.09 | Body centre; lens along Blender +Y | Ghost photos | Blockout |
 | Battery pack | One object | 0.1 × 0.03 × 0.06 | Base centre | Pickup | Blockout |
 | Key | One object | 0.1 long | Centre | Pickup, opens the door | Blockout |
@@ -77,7 +79,14 @@ The code finds objects by name, so names are part of the contract between Blende
 | `Collider_` | Invisible collision box | `Collider_Desk`, `Collider_Wall_N` |
 | `Mirror_Surface` | The reflective plane of the mirror | `Mirror_Surface` |
 | `Spawn_` | Empty marking a position | `Spawn_Player`, `Spawn_Wisp` |
+| Names listed in the room definition's `props` | A loose object the player can grab and throw, when `throwable: true` | `Book_1` to `Book_4` |
 | Everything else | Static scenery | `Wall_N`, `Bookshelf`, `Rug` |
+
+**Notes on props and the flashlight**
+
+- `Pickup_Flashlight` is not in `level-0.glb`. The room definition (`level0.def.ts`) names `flashlight.glb` and a floor position, and the room loader adds the node under that name. To move it, change the definition; no Blender work.
+- `Prop_Candle` is usable without an `Interact_` prefix: the room definition lists it as an interactable of type `candle`. The flame sits on top of the model's bounding box, so keep the wick as the highest point.
+- A prop needs no special prefix: `throwable: true` in the definition is what makes it grabbable. Export props axis-aligned (identity rotation on the node), because the game sizes their physics from the bounding box and lays them flat along the smallest axis when they land.
 
 **Export**
 
@@ -93,19 +102,19 @@ Keep materials simple enough for an iPhone 15 Pro: the flashlight does the real-
 **Materials**
 
 - Principled BSDF only, using base colour, roughness and an optional normal map. Node tricks that glTF can't export won't reach the game.
-- Reuse a small set of shared materials (painted wood, card, felt, clay, metal, glass) across objects.
+- Reuse a small set of shared materials (wood, card, cloth, metal, glass), each a flat palette colour, across objects.
 - The painting canvas, mirror surface and Wisp only need a placeholder material; the code replaces it with its own shader.
 
 **Textures**
 
 - 1024 px for large surfaces (walls, floor, desk), 512 px for props. Power-of-two sizes.
-- Hand-painted or baked from procedural materials. No photo-real scans; they break the miniature look.
+- Flat colour first; texture only for a faint brush or paper grain. No photo-real scans; they break the print look.
 - The UV writing on the painting is a separate image (white text on black) made in any image editor; the shader shows it only inside the UV cone.
 
 **Baking**
 
 - Static shell and furniture get a second UV map (no overlaps) for a baked lightmap and ambient occlusion.
-- Bake with soft moonlight from the window and a little ambient fill, nothing warm; the flashlight adds warmth in the game.
+- Bake only ambient occlusion and a gentle moonlight tone, nothing warm; the flashlight adds warmth in the game. The print look turns soft light into flat steps, so a strong lightmap shows up as banding: keep it subtle, or skip it and rely on the game's lighting.
 - Doors, drawers, pickups and held items are not baked, because they move.
 
 ## How we work
@@ -116,7 +125,7 @@ We block out the whole room first so coding can start on real proportions, then 
 2. **Review (Michał):** walk the room in the game's grey-box build, check scale and layout, adjust.
 3. **Hero assets first:** desk with drawer, door, painting, mirror, the four that drive the Level 0 chain. Then the held flashlight and camera.
 4. **Props and pickups:** bookshelf and books, chair, rug, small props, battery pack, key, Wisp.
-5. **Materials pass:** shared miniature materials applied across the room.
+5. **Materials pass:** shared flat print materials applied across the room.
 6. **Bake and final export:** second UV maps, lightmap and AO bake, final .glb.
 
 **Working rules**

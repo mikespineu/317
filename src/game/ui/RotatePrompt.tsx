@@ -16,8 +16,9 @@ const CONTROLS: [keys: string, action: string][] = [
   ['F', 'Light on / off'],
   ['Q', 'White / UV'],
   ['R', 'Swap battery'],
-  ['Right mouse', 'Raise camera, click to shoot'],
-  ['Esc', 'Pause'],
+  ['P / Right mouse', 'Photo mode on / off'],
+  ['Click', 'Shoot, in photo mode'],
+  ['Esc', 'Leave photo mode, or pause'],
 ]
 
 // Shell overlays: the portrait prompt (touch) and the click-to-play / paused

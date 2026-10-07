@@ -44,6 +44,7 @@ const pickups: readonly PickupDef[] = level0.pickups
 const props: readonly PropDef[] = level0.props
 
 export const INTERACT = 'Interact_'
+export const CANDLE_FLAG = 'candle-lit'
 export const PICKUP = 'Pickup_'
 
 export interface Prompt {
@@ -89,6 +90,11 @@ export function promptFor(node: string | null): Prompt | null {
     case 'door':
       if (check(openedFlag(node))) return null
       return { label: check(def.requires) ? 'Open door' : 'Locked', usable: true }
+    case 'candle':
+      return {
+        label: useGame.getState().flags[CANDLE_FLAG] ? 'Blow out the candle' : 'Light the candle',
+        usable: true,
+      }
     case 'uv-reveal':
       // A clue surface, not something to use.
       return check(def.gives) ? null : { label: 'Something faint on the canvas', usable: false }
@@ -140,6 +146,15 @@ export function interactWith(node: string) {
   if (!def) return
   if (def.type === 'drawer') operateDrawer(def)
   else if (def.type === 'door') operateDoor(def)
+  else if (def.type === 'candle') toggleCandle()
+}
+
+// The flame and its light follow the flag (light/Candle.tsx).
+function toggleCandle() {
+  const s = useGame.getState()
+  const lit = !!s.flags[CANDLE_FLAG]
+  s.setFlag(CANDLE_FLAG, !lit)
+  sfx.play(lit ? 'candleOut' : 'candleLight')
 }
 
 // An item chosen in the bar acts on whatever is under the crosshair.

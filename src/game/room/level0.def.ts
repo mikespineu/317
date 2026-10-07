@@ -15,6 +15,8 @@ export const level0 = {
       sets: 'flag:drawer-open',
     },
     { node: 'Interact_Door', type: 'door', requires: 'item:key', openAngleDeg: 95 },
+    // Named by the definition rather than by an Interact_ prefix, so no re-export is needed.
+    { node: 'Prop_Candle', type: 'candle' },
   ],
   pickups: [
     // The flashlight starts on the floor. It has no node in level-0.glb: an

@@ -1,6 +1,6 @@
 # 3.17 — Level 0 status
 
-Oct 7, 2026 · companion to [`level-0-implementation.md`](./level-0-implementation.md) (the plan) and [`level-0-blender-asset-spec.md`](./level-0-blender-asset-spec.md) (the room)
+Oct 7, 2026, updated after the print-look pass (PR #7) · companion to [`level-0-implementation.md`](./level-0-implementation.md) (the plan) and [`level-0-blender-asset-spec.md`](./level-0-blender-asset-spec.md) (the room)
 
 Level 0 is playable from spawn to the open door, and every step of the plan has code behind it. It is not done: none of the four "done when" boxes in the plan can be ticked yet, because they are about feel and performance on real devices, and that has not been tested. This note records what exists, how it fits together, what is left, and where the level could be better than it is.
 
@@ -12,7 +12,7 @@ All 13 steps of the plan, in PR #5 (`level-0-implementation`).
 
 | Step | What exists |
 | --- | --- |
-| 1 Renderer, quality | WebGPU with WebGL 2 fallback, desktop / phone presets, rotate prompt, fullscreen on first tap |
+| 1 Renderer, quality | WebGPU with WebGL 2 fallback, desktop / phone presets, rotate prompt (fullscreen was built, then removed) |
 | 2 Room loading | `.glb` loaded and bound by node name, greybox fallback, `npm run assets` |
 | 3 Player | Pointer lock + WASD, touch joystick and drag-to-look, circle-vs-box collision |
 | 4 Flashlight, battery | Spotlight with cookie and shadows, one pack for both lights, four levels, flicker, sputter, swap, emergency pack |
@@ -31,6 +31,17 @@ Added after the first playtest:
 - An always-on controls list in the bottom-left corner (desktop).
 - A second battery pack in plain sight on the desk (`Pickup_Battery_Desk`); the first one is hidden behind the books on the shelf.
 - The camera is a toggle on right mouse, because hold-right-then-left-click cannot be done on a trackpad.
+- Photo mode also toggles with P, and Esc leaves it. The browser takes Esc for itself and releases the pointer lock, which also pauses the game; the camera is lowered at that moment, so the player resumes in normal view. The viewfinder shows a reminder of the keys.
+
+Added in the print-look pass (PR #7):
+
+- **A new look: woodblock print (ukiyo-e at night).** Chosen from a moodboard of anime cel frames, sumi-e ink manga and ukiyo-e prints, replacing the miniature diorama. It is a post-processing pass in `renderer/ukiyo.ts` (depth-based ink outlines, flat tone bands, indigo shadows, paper grain) with a brightness lift (`nightGamma`) so the unlit room stays readable. Every effect is a toggle and a tuning value in the debug panel.
+- **Every DOM overlay restyled** to match: HUD, padlock, photo card, pause card, viewfinder, touch buttons, title screen. Flat colour, ink outlines, hard offset shadows. The palette is in the Tailwind `@theme`; `print-paper` and `print-ink` are shared panel classes in `styles.css`.
+- **Throwable props.** The room definition has a `props` list; `throwable: true` makes a prop grabbable and throwable (`props/propPhysics.ts`). The four books are the first. Colliders now carry Y extents.
+- **The flashlight starts on the floor.** It is a pickup with a `model`, placed by the room loader, with a faint glow. F/Q/R, the battery HUD and the touch light buttons are inactive until it is picked up (`hasLight` in the store).
+- **Guidance:** a guide label says to find the flashlight at the start, to find a battery pack and press R when the battery is low or dead, and (20 s after pickup, until the painting's code is found) to press Q for UV light and sweep the walls. The title screen and the first play card state the goals: find the way out, photograph the ghosts.
+- **The candle on the desk is usable.** E or click lights it (a flickering flame and a warm point light) and again blows it out. It works without the flashlight, so it can help the player find it in the dark. Tuning: `candleLight`, `candleDistance`.
+- **Fullscreen removed.**
 
 ---
 
@@ -40,7 +51,7 @@ Added after the first playtest:
 
 | Where | Holds | Rule |
 | --- | --- | --- |
-| `store.ts` (zustand) | Things that change on an event: light on/off and mode, battery level, spares, items, flags, clues, focus, open UI, photos | React subscribes with selectors; a change here may re-render |
+| `store.ts` (zustand) | Things that change on an event: flashlight held, light on/off and mode, battery level, spares, items, flags, clues, focus, held prop, open UI, photos | React subscribes with selectors; a change here may re-render |
 | `runtime.ts` (plain object) | Things that change every frame: input deltas, player position, live battery charge, beam, Wisp, colliders | Never triggers a render; each block has one writer |
 | `events.ts` | One-shot intents: `interact`, `shoot`, `photo` | Not state; fire and forget |
 
@@ -58,6 +69,7 @@ Game.tsx        canvas + DOM overlays (HUD, padlock, photo card, touch buttons, 
       ├─ PlayerController
       ├─ Flashlight (+ cone, dust), PaintingReveal
       ├─ Interaction
+      ├─ Props
       ├─ Mirror, Wisp, CameraMode
       └─ DebugScene
 ```
@@ -66,7 +78,7 @@ Game.tsx        canvas + DOM overlays (HUD, padlock, photo card, touch buttons, 
 
 `room/level0.def.ts` describes the room in the shape the later JSON loader will read: interactables with a `type`, `requires` / `sets` / `gives` tokens (`item:key`, `flag:drawer-open`, `clue:drawer-code`), pickups, ghosts, mirror, exit. `bindNodes.ts` finds the matching nodes in the `.glb` by name prefix and throws in dev if one is missing. `puzzle/chain.ts` evaluates the tokens against the store; `interaction/actions.ts` picks behaviour by `type`, not by node name.
 
-Adding the desk battery showed the shape works: one object in Blender, one line in the definition, no new game code.
+Adding the desk battery showed the shape works: one object in Blender, one line in the definition, no new game code. The books and the floor flashlight did the same: `props` entries and a pickup with a `model`, no change to the engine's shape. Props are bound by the names in the definition, and a pickup with a `model` is added by `RoomScene` before binding, so it does not need to exist in the `.glb`.
 
 ### A frame
 
@@ -74,13 +86,14 @@ Adding the desk battery showed the shape works: one object in Blender, one line 
 2. `PlayerController` consumes them, resolves collision, writes `runtime.player`.
 3. `Flashlight` runs the battery, writes `runtime.beam` and the shared UV uniforms.
 4. The Wisp, the interaction ray and the painting's clue check read those.
-5. `PostFx` renders (priority 1). Photo capture runs right after (priority 2).
+5. `Props` steps the held and thrown props.
+6. `PostFx` renders (priority 1). Photo capture runs right after (priority 2).
 
 Nothing advances while `paused` is true or a UI (`padlock`, `photo`, `complete`) is open.
 
 ### Shaders
 
-All custom materials are TSL node materials, so one code path runs on WebGPU and WebGL 2. `light/uvReveal.ts` exports the beam uniforms and a reusable `uvMask()`; later rooms can use it for footprints or ink ghosts.
+All custom materials are TSL node materials, so one code path runs on WebGPU and WebGL 2. The print look (`renderer/ukiyo.ts`) is TSL too, chained into `PostFx` after tone mapping. `light/uvReveal.ts` exports the beam uniforms and a reusable `uvMask()`; later rooms can use it for footprints or ink ghosts.
 
 ### URL flags
 
@@ -95,7 +108,9 @@ Verified so far only by typecheck, build, and a scripted playthrough in a hidden
 **Not tested at all**
 
 - Frame rate on any device. The one number available: 117 draw calls and 10k triangles in the worst view, against a budget of 120 and 300k on the laptop and **80** draw calls on the iPhone. The phone budget is already exceeded on paper.
-- Touch controls, the iPhone, safe areas, fullscreen.
+- Touch controls, the iPhone, safe areas.
+- The print look on any device: how much it costs, and whether the outline threshold and brightness hold up on a phone. The extra depth reads and noise add per-pixel work on top of bloom.
+- Throwing a prop with touch, and the held prop on a small screen.
 - Audio (levels, iOS unlock).
 - Pointer lock with a real mouse, including re-lock after the padlock and the photo card close.
 
@@ -103,13 +118,15 @@ Verified so far only by typecheck, build, and a scripted playthrough in a hidden
 
 - Photo capture: one captured image came back near-black. The hidden tab returns stale canvas frames, so this may be a test artefact. Check first on a visible screen, on both backends.
 - The open drawer slides into the volume of the chair's backrest. This is the Blender layout, not code.
+- Thrown props are spheres: a book tipped edge-on can clip a wall by a few centimetres. There is no prop-to-prop, prop-to-player or prop-to-Wisp collision.
+- The outline threshold (`inkThreshold`, 0.012) was chosen without testing on a range of views; some edges may be missing or noisy.
 
 **Rough edges seen in the playthrough**
 
 - The starting charge of 0.5 gives about 15 seconds of white light before the "low" level, and "low" is close to dark.
 - The beam cone reads as a wedge coming from the lower right rather than a cone.
 - The reversed word glows clearly with no light on it, so it is noticed before the mirror is.
-- Scenery does not block the interaction ray: the shelf battery can be picked up through the books.
+- Scenery does not block the interaction ray, except the books: as ray targets they now hide the shelf battery until moved. Other furniture still does not block it.
 
 ---
 
@@ -141,9 +158,10 @@ These map to the plan's four "done when" boxes and its open questions (§13).
 
 **D. The style is chosen and documented** — *"for the real rooms"*
 
-- [ ] Materials pass in Blender: the room is still flat blockout colours.
-- [ ] Bake the lightmap and ambient occlusion, and load it in the game.
-- [ ] Settle grain, grade, fog and bloom values, then write them down as the style reference for Room 1.
+- [x] The look is chosen: woodblock print, documented in the GDD and the Blender spec.
+- [ ] Materials pass in Blender: flat palette colours, one per material (the room is still blockout colours).
+- [ ] Lightmap and ambient occlusion: reconsider. The print look turns soft light into flat bands, so a strong bake shows as banding; ambient occlusion alone may be enough.
+- [ ] Settle outline, tone-band, brightness, grain, grade, fog and bloom values on device, then write them down as the style reference for Room 1.
 
 **E. Housekeeping**
 
@@ -165,12 +183,12 @@ The level works, but it works like a checklist: each mechanic appears once, in i
 
 **3. Make the mirror part of the puzzle.** The reversed word is a tech test the player has no reason to read. Mirror-write the code's digit order, or put the UV writing where it can only be seen in the reflection. The room was laid out for this: the mirror faces the painting.
 
-**4. Give the room a first impression.** It is a dark box with a cone of light. The cheapest large gains are the materials pass and baked moonlight (D above), then a visible moon patch on the floor, a readable silhouette for the desk and window from spawn, and a cone that looks like a cone.
+**4. Give the room a first impression.** *Partly done:* the print look gives the room a style, and the floor flashlight gives the first seconds a goal. Still open: the materials pass (D above), a readable silhouette for the desk and window from spawn, and a cone that looks like a cone.
 
 **5. Reward the photo.** A score of 99 appears on a card and then nothing happens. Show the photo on the "Level complete" card with a grade, and make a good shot feel different from a poor one: sound, a slower dissolve, the card's wording.
 
 **6. Sound that tells the player things.** The Wisp's whisper already scales with distance. Add direction (stereo pan), a rising tone as the freeze timer runs out, and a distinct sound when UV passes over hidden ink, so the player can search by ear.
 
-**7. Teach without the list.** The controls list in the corner is a patch. The first seconds could teach instead: the light starts off ("F"), the battery prompt appears when the first pack is found, the camera prompt when the Wisp is first seen.
+**7. Teach without the list.** *Partly done:* the first seconds now teach (find the flashlight), and the battery guide appears when the battery is low. The F/Q/R rows of the controls list only appear after pickup. The UV light now has a hint too. Still open: a camera prompt when the Wisp is first seen.
 
 Ideas 1 to 3 change the definition and a little code, not the engine, and they would turn four separate demos into one puzzle. That is probably the "something better".

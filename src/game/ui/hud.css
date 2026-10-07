@@ -331,7 +331,7 @@
 
 .hud-controls > div {
   display: grid;
-  grid-template-columns: 3.4em auto;
+  grid-template-columns: 4.6em auto;
   gap: 0.8em;
 }
 

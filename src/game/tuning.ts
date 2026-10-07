@@ -124,6 +124,13 @@ export const tuning = {
   sheetTurnRate: 3, // how fast it turns to face the player, 1/s
   sheetOpacity: 0.96,
 
+  // candle
+  candleLight: 3, // candela when lit
+  candleDistance: 4.5, // m, where its light fades out
+
+  // hints
+  uvHintDelay: 20, // s after the flashlight is found before the UV hint appears
+
   // props (throwable)
   holdDistance: 0.75, // m in front of the eye
   holdRight: 0.22, // m to the right of the view centre

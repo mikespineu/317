@@ -111,6 +111,7 @@ function onKeyDown(e: KeyboardEvent) {
   else if (e.code === 'KeyQ') game.toggleMode()
   else if (e.code === 'KeyR') game.swapBattery()
   else if (e.code === 'KeyE') emit('interact', {})
+  else if (e.code === 'KeyP') game.setCameraRaised(!game.cameraRaised) // photo mode on / off
 }
 
 // Key-ups are always heard, so a key released behind a modal doesn't stick.
@@ -160,9 +161,13 @@ function onLockChange() {
   locked = !!canvas && document.pointerLockElement === canvas
   if (was && !locked) {
     releaseKeys()
-    // In hold mode the button-up can be missed once the lock is gone.
+    // Losing the lock with no modal open is Esc (or alt-tab). The browser takes
+    // Esc for itself and the page never sees the key, so this is the only
+    // place to leave photo mode with it. The game pauses as well; the camera
+    // is already down when the player resumes. A modal's own unlock is not
+    // this: uiLock is set by then, and the camera stays up behind it.
     const game = useGame.getState()
-    if (!tuning.cameraRaiseToggle && game.cameraRaised) game.setCameraRaised(false)
+    if (game.cameraRaised && game.uiLock === null) game.setCameraRaised(false)
   }
   endRelock()
 }

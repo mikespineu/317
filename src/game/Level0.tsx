@@ -3,6 +3,7 @@ import { DebugScene } from './debug/DebugScene'
 import { DEBUG } from './debug'
 import { Wisp } from './ghost/Wisp'
 import { Interaction } from './interaction/Interaction'
+import { Candle } from './light/Candle'
 import { Flashlight } from './light/Flashlight'
 import { PaintingReveal } from './light/PaintingReveal'
 import { Mirror } from './mirror/Mirror'
@@ -22,6 +23,7 @@ export function Level0() {
       <RoomScene def={level0}>
         <PlayerController />
         <Flashlight />
+        <Candle />
         <PaintingReveal />
         <Interaction />
         <Props />
