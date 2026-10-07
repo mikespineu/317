@@ -32,6 +32,12 @@ Added after the first playtest:
 - A second battery pack in plain sight on the desk (`Pickup_Battery_Desk`); the first one is hidden behind the books on the shelf.
 - The camera is a toggle on right mouse, because hold-right-then-left-click cannot be done on a trackpad.
 
+Added after that (PR #8):
+
+- **A UV hint.** After 20 s with the flashlight, and until the painting's code is found, the guide label says to press Q for UV light and sweep the walls; while UV is on it says to sweep slowly. Battery warnings take priority. Tuning: `uvHintDelay`.
+- **Photo mode on P, and Esc leaves it.** P toggles it (right mouse still works). The browser takes Esc for itself and releases the pointer lock, which also pauses the game; the camera is lowered at that moment, so the player resumes in normal view. The viewfinder shows a reminder of the keys.
+- **The candle on the desk is usable.** E or click lights it (a flickering flame and a warm point light) and again blows it out. It works without the flashlight, so it can help the player find it in the dark. It is an interactable of type `candle` named by the room definition, so no Blender change was needed. Tuning: `candleLight`, `candleDistance`.
+
 ---
 
 ## 2. How it works
@@ -148,8 +154,7 @@ These map to the plan's four "done when" boxes and its open questions (§13).
 **E. Housekeeping**
 
 - [ ] Vercel preview deploy and a phone playtest, as the plan asks at each milestone.
-- [ ] `CLAUDE.md` says port 8000; `package.json` says 9000.
-- [ ] `CLAUDE.md` still describes `Level0.tsx` as placeholder boxes and Tailwind as absent.
+- [x] `CLAUDE.md` said port 8000 and described `Level0.tsx` as placeholder boxes; both fixed, and it now covers the print look, Tailwind, the controls and the definition's `props` and model pickups.
 
 A, B and C are mostly tuning and can be done in a day or two with the debug panel. D is the large one and depends on Blender work.
 
