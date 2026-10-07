@@ -11,6 +11,9 @@ export type SfxName =
   | 'lowTick'
   | 'chime'
   | 'pickup'
+  | 'propGrab'
+  | 'propThrow'
+  | 'propHit'
   | 'locked'
   | 'wheelClick'
   | 'padlockOpen'
@@ -67,6 +70,23 @@ const voices: Record<SfxName, (a: Audio) => void> = {
     tone(a, { type: 'triangle', from: 620, dur: 0.11, gain: 0.09 })
     tone(a, { type: 'triangle', from: 930, at: 0.07, dur: 0.16, gain: 0.08 })
     click(a, 0, 1800, 0.06, 0.02)
+  },
+
+  // Cardboard and paper taken off a shelf.
+  propGrab(a) {
+    noise(a, { filter: 'bandpass', from: 1700, to: 1100, q: 1.2, dur: 0.07, gain: 0.07, attack: 0.01 })
+    thud(a, 0.03, 190, 0.07, 0.06)
+  },
+
+  // Air moved past the ear.
+  propThrow(a) {
+    noise(a, { filter: 'bandpass', from: 500, to: 2600, q: 1.6, dur: 0.16, gain: 0.08, attack: 0.04 })
+  },
+
+  // A flat knock, different each time.
+  propHit(a) {
+    thud(a, 0, 150 + Math.random() * 70, 0.17, 0.09)
+    click(a, 0, 1100 + Math.random() * 500, 0.09, 0.02)
   },
 
   // A handle that gives a little and stops.

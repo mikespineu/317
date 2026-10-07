@@ -17,6 +17,7 @@ import {
 import { bloom } from 'three/examples/jsm/tsl/display/BloomNode.js'
 import { tuning } from '../tuning'
 import { quality } from './quality'
+import { indigoShadows, inkColor, inkEdge, nightLift, paperGrain, syncUkiyo, toneBands } from './ukiyo'
 
 // Which effects are in the chain. The debug panel flips these at runtime; the
 // pipeline notices on its next frame and rebuilds its output node once, so
@@ -26,6 +27,11 @@ export const postSettings = {
   vignette: true,
   grain: quality.grain,
   grade: true,
+  night: true,
+  indigo: true,
+  bands: true,
+  ink: true,
+  paper: true,
 }
 
 export type PostSettings = typeof postSettings
@@ -39,7 +45,7 @@ const WARM = vec3(1.07, 1.0, 0.88)
 
 function signature() {
   const s = postSettings
-  return `${s.bloom}|${s.vignette}|${s.grain}|${s.grade}`
+  return `${s.bloom}|${s.vignette}|${s.grain}|${s.grade}|${s.night}|${s.indigo}|${s.bands}|${s.ink}|${s.paper}`
 }
 
 export interface PostPipeline {
@@ -59,6 +65,8 @@ export function createPostPipeline(
   // projection live, so resize, DPR and FOV changes need no handling here.
   const scenePass = pass(scene, camera)
   const sceneColor = scenePass.getTextureNode('output')
+  const sceneDepth = scenePass.getTextureNode('depth')
+  const edge = inkEdge(sceneDepth)
 
   const bloomNode = bloom(sceneColor, tuning.bloomStrength, tuning.bloomRadius, tuning.bloomThreshold)
   bloomNode.setResolutionScale(BLOOM_BASE_SCALE * quality.bloomScale)
@@ -86,6 +94,14 @@ export function createPostPipeline(
         .add(PLUM.mul(shadow))
       rgb = mix(rgb, graded, gradeStrength)
     }
+
+    // The print look sits between the grade and the vignette: flat tones,
+    // indigo shadows, then ink over the top, all on the display image.
+    if (postSettings.night) rgb = nightLift(rgb)
+    if (postSettings.bands) rgb = toneBands(rgb)
+    if (postSettings.indigo) rgb = indigoShadows(rgb)
+    if (postSettings.ink) rgb = mix(rgb, inkColor, edge)
+    if (postSettings.paper) rgb = paperGrain(rgb)
 
     if (postSettings.vignette) {
       const d = screenUV.sub(0.5).length()
@@ -118,6 +134,7 @@ export function createPostPipeline(
       vignetteStart.value = tuning.vignetteStart
       grainStrength.value = tuning.grainStrength
       gradeStrength.value = tuning.gradeStrength
+      syncUkiyo(renderer.getPixelRatio())
       pipeline.render()
     },
     dispose() {

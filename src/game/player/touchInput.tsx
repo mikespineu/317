@@ -187,6 +187,7 @@ const svg = {
 } as const
 
 function Buttons() {
+  const hasLight = useGame((s) => s.hasLight)
   const lightOn = useGame((s) => s.lightOn)
   const lightMode = useGame((s) => s.lightMode)
   const spares = useGame((s) => s.spares)
@@ -195,18 +196,20 @@ function Buttons() {
 
   return (
     <div className="touch-buttons">
-      <TouchButton
-        label="Swap battery"
-        area="battery"
-        dim={spares === 0}
-        badge={spares}
-        onPress={() => game().swapBattery()}
-      >
-        <svg {...svg}>
-          <rect x="3" y="8" width="16" height="8" rx="1.5" />
-          <path d="M21 11v2M7 11v2M10.5 11v2" />
-        </svg>
-      </TouchButton>
+      {hasLight && (
+        <TouchButton
+          label="Swap battery"
+          area="battery"
+          dim={spares === 0}
+          badge={spares}
+          onPress={() => game().swapBattery()}
+        >
+          <svg {...svg}>
+            <rect x="3" y="8" width="16" height="8" rx="1.5" />
+            <path d="M21 11v2M7 11v2M10.5 11v2" />
+          </svg>
+        </TouchButton>
+      )}
       <TouchButton
         label={raised ? 'Lower camera' : 'Raise camera'}
         area="camera"
@@ -219,27 +222,31 @@ function Buttons() {
           <circle cx="12" cy="13" r="3.2" />
         </svg>
       </TouchButton>
-      <TouchButton
-        label={lightMode === 'uv' ? 'Switch to white light' : 'Switch to UV light'}
-        area="mode"
-        tone="uv"
-        active={lightMode === 'uv'}
-        onPress={() => game().toggleMode()}
-      >
-        <span className="touch-glyph">UV</span>
-      </TouchButton>
-      <TouchButton
-        label={lightOn ? 'Light off' : 'Light on'}
-        area="light"
-        tone="warm"
-        active={lightOn}
-        onPress={() => game().toggleLight()}
-      >
-        <svg {...svg}>
-          <path d="M3 9.5h7l4-2.5v10l-4-2.5H3z" />
-          <path d="M17.5 9l3-1.5M17.5 12H21M17.5 15l3 1.5" />
-        </svg>
-      </TouchButton>
+      {hasLight && (
+        <>
+          <TouchButton
+            label={lightMode === 'uv' ? 'Switch to white light' : 'Switch to UV light'}
+            area="mode"
+            tone="uv"
+            active={lightMode === 'uv'}
+            onPress={() => game().toggleMode()}
+          >
+            <span className="touch-glyph">UV</span>
+          </TouchButton>
+          <TouchButton
+            label={lightOn ? 'Light off' : 'Light on'}
+            area="light"
+            tone="warm"
+            active={lightOn}
+            onPress={() => game().toggleLight()}
+          >
+            <svg {...svg}>
+              <path d="M3 9.5h7l4-2.5v10l-4-2.5H3z" />
+              <path d="M17.5 9l3-1.5M17.5 12H21M17.5 15l3 1.5" />
+            </svg>
+          </TouchButton>
+        </>
+      )}
       {raised && (
         <TouchButton label="Take photo" area="shutter" tone="ghost" onPress={() => emit('shoot')}>
           <svg {...svg}>

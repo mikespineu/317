@@ -1,6 +1,7 @@
 import { useEffect } from 'react'
 import { useFrame, useThree } from '@react-three/fiber'
 import { on } from '../events'
+import { throwHeld } from '../props/propPhysics'
 import { useRoom } from '../room/RoomScene'
 import { useGame } from '../store'
 import { tuning } from '../tuning'
@@ -33,6 +34,8 @@ export function Interaction() {
       on('interact', ({ ndc }) => {
         const s = useGame.getState()
         if (s.paused || s.uiLock || s.cameraRaised) return
+        // Anything in the hands is thrown first; nothing else can be used meanwhile.
+        if (s.held) return throwHeld(camera)
         // A tap acts on what is under the finger, E on what is under the crosshair.
         const target = ndc ? pick(room, camera, ndc) : s.focus
         if (target) interactWith(target)

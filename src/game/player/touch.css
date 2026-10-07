@@ -5,19 +5,20 @@
   user-select: none;
   -webkit-user-select: none;
   -webkit-touch-callout: none;
-  --touch-cream: #e9dcc0;
-  --touch-ink: rgba(12, 11, 18, 0.5);
+  font-family: var(--font-display);
 }
 
-/* Floating joystick: placed under the thumb by touchInput.tsx. */
+/* Floating joystick: placed under the thumb by touchInput.tsx. A paper ring
+   with a paper knob, both edged in ink so they read on any part of the room. */
 .touch-stick {
   position: absolute;
   opacity: 0;
   transform: translate(-50%, -50%);
   border-radius: 50%;
-  border: 1.5px solid rgba(233, 220, 192, 0.3);
-  background: radial-gradient(circle, rgba(12, 11, 18, 0.1) 40%, rgba(12, 11, 18, 0.42));
-  transition: opacity 0.12s;
+  border: var(--line) solid var(--color-paper);
+  background: rgba(13, 12, 31, 0.4);
+  box-shadow: 0 0 0 var(--line) var(--color-ink);
+  transition: opacity 0.12s steps(2);
 }
 
 .touch-knob {
@@ -28,8 +29,8 @@
   height: 44%;
   transform: translate(-50%, -50%);
   border-radius: 50%;
-  border: 1.5px solid rgba(233, 220, 192, 0.7);
-  background: rgba(233, 220, 192, 0.14);
+  border: var(--line) solid var(--color-ink);
+  background: var(--color-paper);
 }
 
 /* Right edge, bottom-anchored: the lower rows sit under a resting thumb. */
@@ -47,6 +48,7 @@
   gap: 10px;
 }
 
+/* Round paper stamps with an ink glyph and a hard shadow. */
 .touch-btn {
   position: relative;
   display: grid;
@@ -55,25 +57,21 @@
   height: 56px;
   padding: 0;
   border-radius: 50%;
-  border: 1.5px solid rgba(233, 220, 192, 0.38);
-  background: var(--touch-ink);
-  color: var(--touch-cream);
+  border: var(--line) solid var(--color-ink);
+  background: var(--color-paper);
+  color: var(--color-ink);
   font: inherit;
+  box-shadow: 3px 3px 0 var(--color-ink);
   pointer-events: auto;
   touch-action: none;
   -webkit-tap-highlight-color: transparent;
-  backdrop-filter: blur(6px);
-  -webkit-backdrop-filter: blur(6px);
-  transition:
-    transform 0.08s,
-    background-color 0.15s,
-    border-color 0.15s,
-    box-shadow 0.15s;
+  transition: background-color 0.1s steps(2);
 }
 
 .touch-btn:active {
-  transform: scale(0.92);
-  background: rgba(233, 220, 192, 0.2);
+  translate: 2px 2px;
+  box-shadow: 1px 1px 0 var(--color-ink);
+  background: var(--color-paper-shade);
 }
 
 .touch-btn svg {
@@ -83,48 +81,47 @@
 
 .touch-glyph {
   font-size: 15px;
-  font-weight: 600;
+  font-weight: 700;
   letter-spacing: 0.08em;
   /* optical centring: the tracking adds space after the last letter */
   margin-right: -0.08em;
 }
 
 .touch-btn.is-dim {
-  opacity: 0.45;
+  opacity: 0.55;
 }
 
+/* A switched-on control is filled with its light's colour. */
 .touch-btn.is-active {
-  border-color: currentColor;
+  box-shadow: 3px 3px 0 var(--color-vermilion);
 }
 
 .touch-btn.tone-warm.is-active {
-  color: #ffd98a;
-  box-shadow: 0 0 14px rgba(255, 200, 100, 0.35);
+  background: var(--color-saffron);
 }
 
 .touch-btn.tone-uv.is-active {
-  color: #c9a2ff;
-  box-shadow: 0 0 14px rgba(150, 90, 255, 0.45);
+  color: var(--color-paper);
+  background: var(--color-uv);
 }
 
 .touch-btn.tone-ghost.is-active {
-  color: #b9f2df;
-  box-shadow: 0 0 14px rgba(150, 240, 210, 0.3);
+  background: var(--color-ghost);
 }
 
 .touch-badge {
   position: absolute;
-  top: -3px;
-  right: -3px;
+  top: -5px;
+  right: -5px;
   min-width: 20px;
   height: 20px;
   padding: 0 5px;
-  border-radius: 10px;
-  background: var(--touch-cream);
-  color: #14121c;
+  border: var(--line) solid var(--color-ink);
+  background: var(--color-vermilion);
+  color: var(--color-paper);
   font-size: 12px;
   font-weight: 700;
-  line-height: 20px;
+  line-height: 16px;
   text-align: center;
   font-variant-numeric: tabular-nums;
 }

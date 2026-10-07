@@ -1,4 +1,6 @@
-/* HUD: understated on a near-black scene. Warm cream text, brass accents. */
+/* HUD, woodblock-print style: flat colour, ink outlines, hard offset shadows,
+   no blur and no glow. Things the player reads sit on paper (.print-paper);
+   the always-on furniture sits on ink (.print-ink). Both live in styles.css. */
 .hud {
   position: absolute;
   inset: 0;
@@ -6,31 +8,29 @@
   pointer-events: none;
   user-select: none;
   -webkit-user-select: none;
-  font-family: system-ui, sans-serif;
-  color: #e8e2d0;
-  --hud-serif: 'Iowan Old Style', 'Palatino Linotype', Palatino, 'Book Antiqua', Georgia, serif;
-  --hud-shadow: 0 1px 2px rgba(0, 0, 0, 0.9), 0 0 10px rgba(0, 0, 0, 0.7);
+  font-family: var(--font-display);
+  color: var(--color-paper);
 }
 
-/* crosshair */
+/* crosshair: a small diamond, printed with an ink edge */
 .hud-crosshair {
   position: absolute;
   left: 50%;
   top: 50%;
-  width: 4px;
-  height: 4px;
-  margin: -2px 0 0 -2px;
-  border-radius: 50%;
-  background: rgba(232, 226, 208, 0.55);
-  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.45);
+  width: 7px;
+  height: 7px;
+  margin: -3.5px 0 0 -3.5px;
+  rotate: 45deg;
+  background: var(--color-paper);
+  border: 1.5px solid var(--color-ink);
   transition:
-    transform 0.14s ease-out,
+    scale 0.14s steps(3),
     background-color 0.14s;
 }
 
 .hud-crosshair.is-focused {
-  transform: scale(2.1);
-  background: #f2c14e;
+  scale: 1.9;
+  background: var(--color-vermilion);
 }
 
 /* prompt and message */
@@ -42,47 +42,85 @@
   max-width: min(80vw, 30rem);
   text-align: center;
   white-space: nowrap;
-  text-shadow: var(--hud-shadow);
 }
 
 .hud-prompt {
-  top: calc(50% + 26px);
+  top: calc(50% + 24px);
   display: flex;
   align-items: center;
-  gap: 0.55em;
+  gap: 0.6em;
+  padding: 0.3em 0.8em 0.3em 0.4em;
   font-size: 14px;
-  letter-spacing: 0.03em;
-  animation: hud-rise 0.16s ease-out both;
+  letter-spacing: 0.04em;
+  box-shadow: 3px 3px 0 var(--color-ink);
+  animation: hud-rise 0.16s steps(4) both;
 }
 
+/* A hint is a note you cannot act on yet: ink label, faded paper text. */
 .hud-prompt.is-hint {
-  font-family: var(--hud-serif);
+  padding-left: 0.8em;
   font-style: italic;
-  color: rgba(232, 226, 208, 0.6);
+  color: rgba(239, 228, 198, 0.75);
+  background: var(--color-ink);
+  border-color: var(--color-periwinkle);
+  box-shadow: 3px 3px 0 rgba(0, 0, 0, 0.55);
 }
 
+/* the key, as a small red seal */
 .hud-prompt kbd {
   display: grid;
   place-items: center;
   min-width: 1.7em;
   height: 1.7em;
   padding: 0 0.35em;
-  border: 1px solid rgba(242, 193, 78, 0.7);
-  border-radius: 4px;
-  font: 600 12px/1 system-ui, sans-serif;
-  color: #f2c14e;
-  background: rgba(10, 8, 12, 0.6);
-  text-shadow: none;
+  border: 1.5px solid var(--color-ink);
+  font: 700 12px/1 var(--font-display);
+  color: var(--color-paper);
+  background: var(--color-vermilion);
 }
 
 .hud-message {
-  top: calc(50% + 62px);
-  font-family: var(--hud-serif);
-  font-style: italic;
+  top: calc(50% + 64px);
+  padding: 0.55em 1.1em;
   font-size: 16px;
-  color: #efe3c2;
+  line-height: 1.35;
   white-space: normal;
-  animation: hud-message 0.3s ease-out both;
+  animation: hud-message 0.3s steps(5) both;
+}
+
+/* the standing instruction: where to go and what to press next */
+.hud-guide {
+  position: absolute;
+  left: 50%;
+  top: max(12%, 64px);
+  transform: translateX(-50%);
+  width: max-content;
+  max-width: min(86vw, 34rem);
+  padding: 0.6em 1.1em;
+  font-size: 15px;
+  line-height: 1.35;
+  text-align: center;
+  animation: hud-message 0.3s steps(5) both;
+}
+
+/* a battery warning gets a red edge, like a seal pressed on the paper */
+.hud-guide.is-urgent {
+  border-left: 6px solid var(--color-vermilion);
+}
+
+/* The key sits inside the sentence, so the text wraps around it normally. */
+.hud-guide kbd {
+  display: inline-grid;
+  place-items: center;
+  vertical-align: middle;
+  min-width: 1.7em;
+  height: 1.7em;
+  margin: -0.2em 0.1em 0;
+  padding: 0 0.35em;
+  border: 1.5px solid var(--color-ink);
+  font: 700 13px/1 var(--font-display);
+  color: var(--color-paper);
+  background: var(--color-vermilion);
 }
 
 /* battery, top-left */
@@ -96,22 +134,22 @@
 }
 
 .hud-battery {
-  --lamp: #f2c14e;
+  --lamp: var(--color-saffron);
   display: flex;
   align-items: center;
-  gap: 7px;
+  gap: 8px;
+  padding: 6px 10px;
   font-size: 12px;
   letter-spacing: 0.06em;
-  text-shadow: var(--hud-shadow);
   transition: opacity 0.2s;
 }
 
 .hud-battery.is-uv {
-  --lamp: #b48cff;
+  --lamp: var(--color-uv);
 }
 
 .hud-battery.is-off {
-  opacity: 0.55;
+  opacity: 0.6;
 }
 
 .hud-battery-shell {
@@ -121,39 +159,31 @@
   width: 38px;
   height: 17px;
   padding: 2px;
-  border: 1.5px solid rgba(232, 226, 208, 0.75);
-  border-radius: 4px;
-  background: rgba(8, 6, 10, 0.45);
+  border: 2px solid var(--color-paper);
+  background: var(--color-ink);
 }
 
 .hud-battery-shell::after {
   content: '';
   position: absolute;
-  right: -5px;
-  top: 4px;
-  width: 3px;
-  height: 6px;
-  border-radius: 0 2px 2px 0;
-  background: rgba(232, 226, 208, 0.75);
+  right: -6px;
+  top: 3px;
+  width: 4px;
+  height: 7px;
+  background: var(--color-paper);
 }
 
 .hud-battery-shell i {
   flex: 1;
-  border-radius: 1.5px;
-  background: rgba(232, 226, 208, 0.08);
-  transition:
-    background-color 0.25s,
-    box-shadow 0.25s;
+  background: rgba(239, 228, 198, 0.14);
 }
 
 .hud-battery-shell i.is-lit {
   background: var(--lamp);
-  box-shadow: 0 0 6px color-mix(in srgb, var(--lamp) 60%, transparent);
 }
 
 .hud-battery.is-low .hud-battery-shell i.is-lit {
-  background: #e8793a;
-  box-shadow: 0 0 6px rgba(232, 121, 58, 0.6);
+  background: var(--color-vermilion);
 }
 
 .hud-battery.is-low .hud-battery-shell,
@@ -162,23 +192,22 @@
 }
 
 .hud-battery.is-empty .hud-battery-shell {
-  border-color: #d8553f;
+  border-color: var(--color-vermilion);
 }
 
 .hud-battery.is-empty .hud-battery-shell::after {
-  background: #d8553f;
+  background: var(--color-vermilion);
 }
 
 /* Swapping: the cells fill one after another while the light is out. */
 .hud-battery.is-swapping .hud-battery-shell {
   animation: none;
-  border-color: rgba(232, 226, 208, 0.75);
+  border-color: var(--color-paper);
 }
 
 .hud-battery.is-swapping .hud-battery-shell i {
   background: var(--lamp);
-  box-shadow: none;
-  animation: hud-fill 0.6s linear infinite;
+  animation: hud-fill 0.6s steps(4) infinite;
 }
 
 .hud-battery.is-swapping .hud-battery-shell i:nth-child(2) {
@@ -190,8 +219,7 @@
 }
 
 .hud-battery-mode {
-  margin-left: 2px;
-  font-weight: 600;
+  font-weight: 700;
   color: var(--lamp);
 }
 
@@ -199,34 +227,35 @@
   display: none;
 }
 
+/* spare packs: a little red seal */
 .hud-battery-spares {
   padding: 1px 6px;
-  border-radius: 999px;
-  font-weight: 600;
-  color: #14100a;
-  background: rgba(232, 226, 208, 0.85);
-  text-shadow: none;
+  font-weight: 700;
+  color: var(--color-paper);
+  background: var(--color-vermilion);
 }
 
 .hud-battery-text {
-  color: rgba(232, 226, 208, 0.7);
+  color: rgba(239, 228, 198, 0.8);
 }
 
+/* the clue note: a strip of ink with a red edge, in the clue's own colour */
 .hud-note {
   max-width: 15rem;
-  font-family: var(--hud-serif);
+  padding: 6px 10px;
+  border-left: 4px solid var(--color-vermilion);
   font-style: italic;
   font-size: 13px;
-  color: rgba(200, 176, 255, 0.75);
-  text-shadow: var(--hud-shadow);
-  animation: hud-rise 0.5s ease-out both;
+  line-height: 1.35;
+  color: var(--color-periwinkle);
+  animation: hud-rise 0.5s steps(5) both;
 }
 
 /* item bar: bottom-centre on desktop, under the battery on touch so it
    stays clear of the joystick and the buttons */
 .hud-items {
   display: flex;
-  gap: 8px;
+  gap: 10px;
 }
 
 .hud:not(.is-touch) > .hud-items {
@@ -236,28 +265,29 @@
   transform: translateX(-50%);
 }
 
+/* items are paper tags */
 .hud-item {
   display: flex;
   align-items: center;
   gap: 8px;
   min-height: 40px;
   padding: 0 14px;
-  border: 1px solid rgba(242, 193, 78, 0.45);
-  border-radius: 8px;
-  font: 13px/1 system-ui, sans-serif;
-  letter-spacing: 0.05em;
+  font: 600 14px/1 var(--font-display);
+  letter-spacing: 0.04em;
   text-transform: capitalize;
-  color: #f2c14e;
-  background: rgba(12, 9, 14, 0.62);
   pointer-events: auto;
   cursor: pointer;
   touch-action: manipulation;
   -webkit-tap-highlight-color: transparent;
-  animation: hud-rise 0.3s ease-out both;
+  animation: hud-rise 0.3s steps(4) both;
 }
 
 .hud-item span {
-  color: #e8e2d0;
+  color: var(--color-ink);
+}
+
+.hud-item svg {
+  color: var(--color-vermilion);
 }
 
 .hud-item em {
@@ -265,20 +295,24 @@
   opacity: 0.7;
 }
 
+.hud-item:hover {
+  background-color: var(--color-saffron);
+}
+
 .hud-item:active {
-  background: rgba(242, 193, 78, 0.22);
+  translate: 2px 2px;
+  box-shadow: 0.05em 0.05em 0 var(--color-ink);
 }
 
 .hud-item:focus-visible {
-  outline: 2px solid #f2c14e;
-  outline-offset: 2px;
+  outline: 3px solid var(--color-vermilion);
+  outline-offset: 3px;
 }
 
 .hud-item-dot {
   width: 8px;
   height: 8px;
-  border-radius: 50%;
-  background: currentColor;
+  background: var(--color-vermilion);
 }
 
 /* controls reference, bottom-left */
@@ -289,10 +323,10 @@
   margin: 0;
   display: grid;
   gap: 3px;
-  font: 11px/1.3 ui-monospace, SFMono-Regular, Menlo, monospace;
-  color: #e8e2d0;
-  opacity: 0.55;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.9);
+  padding: 8px 12px;
+  font: 11px/1.3 var(--font-display);
+  letter-spacing: 0.03em;
+  opacity: 0.7;
 }
 
 .hud-controls > div {
@@ -302,16 +336,16 @@
 }
 
 .hud-controls dt {
-  color: #f2c14e;
+  color: var(--color-saffron);
+  font-weight: 700;
   text-align: right;
-  letter-spacing: 0.04em;
 }
 
 .hud-controls dd {
   margin: 0;
 }
 
-/* level complete */
+/* level complete: a print on the indigo ground, sealed in red */
 .hud-complete {
   position: absolute;
   inset: 0;
@@ -320,20 +354,38 @@
   place-items: center;
   padding: max(1rem, env(safe-area-inset-top)) max(1rem, env(safe-area-inset-right))
     max(1rem, env(safe-area-inset-bottom)) max(1rem, env(safe-area-inset-left));
-  font-family: system-ui, sans-serif;
-  color: #e8e2d0;
-  background: radial-gradient(ellipse at center, rgba(14, 10, 16, 0.7), rgba(3, 2, 5, 0.95) 75%);
+  font-family: var(--font-display);
+  color: var(--color-paper);
+  background: var(--color-ink);
   pointer-events: auto;
-  animation: hud-fade 0.8s ease-out both;
+  animation: hud-fade 0.8s steps(8) both;
 }
 
 .hud-complete-card {
+  position: relative;
   display: grid;
   justify-items: center;
   gap: clamp(6px, 2vh, 14px);
   max-width: 26rem;
   max-height: 100%;
+  padding: clamp(14px, 4vh, 28px) clamp(20px, 5vw, 40px);
   text-align: center;
+  box-shadow: 0.35em 0.35em 0 var(--color-vermilion);
+}
+
+/* the seal in the corner */
+.hud-complete-card::after {
+  content: '';
+  position: absolute;
+  top: -14px;
+  right: -14px;
+  width: 30px;
+  height: 30px;
+  rotate: 6deg;
+  background: var(--color-vermilion);
+  border: 2px solid var(--color-ink);
+  outline: 2px solid var(--color-paper);
+  outline-offset: -6px;
 }
 
 .hud-complete-eyebrow {
@@ -341,20 +393,19 @@
   font-size: 11px;
   letter-spacing: 0.32em;
   text-transform: uppercase;
-  color: rgba(242, 193, 78, 0.8);
+  color: var(--color-vermilion);
 }
 
 .hud-complete-card h2 {
   margin: 0;
-  font: 400 clamp(2rem, 9vh, 3.4rem) / 1.05 'Iowan Old Style', 'Palatino Linotype', Palatino,
-    'Book Antiqua', Georgia, serif;
-  color: #f4ead0;
+  font: 700 clamp(2rem, 9vh, 3.4rem) / 1.05 var(--font-display);
+  text-shadow: 0.04em 0.04em 0 var(--color-vermilion);
 }
 
 .hud-complete-line {
   margin: 0;
-  font: italic 15px/1.4 'Iowan Old Style', 'Palatino Linotype', Palatino, Georgia, serif;
-  color: rgba(232, 226, 208, 0.7);
+  font: italic 15px/1.4 var(--font-display);
+  opacity: 0.8;
 }
 
 .hud-complete-photo {
@@ -363,10 +414,10 @@
   gap: 6px;
   margin: 4px 0 0;
   padding: 6px 6px 8px;
-  background: #efe7d2;
-  color: #2a2118;
+  background: var(--color-paper-shade);
+  border: 2px solid var(--color-ink);
   transform: rotate(-2deg);
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
+  box-shadow: 3px 3px 0 var(--color-ink);
 }
 
 .hud-complete-photo img {
@@ -374,7 +425,8 @@
   height: clamp(70px, 24vh, 150px);
   width: auto;
   max-width: 60vw;
-  background: #111;
+  background: var(--color-ink);
+  border: 2px solid var(--color-ink);
 }
 
 .hud-complete-photo figcaption {
@@ -386,27 +438,32 @@
   min-height: 44px;
   margin-top: 6px;
   padding: 0 2rem;
-  border: 1px solid #f2c14e;
-  border-radius: 999px;
-  font: 14px/1 system-ui, sans-serif;
-  letter-spacing: 0.12em;
+  border: 2px solid var(--color-ink);
+  font: 700 14px/1 var(--font-display);
+  letter-spacing: 0.16em;
   text-transform: uppercase;
-  color: #f2c14e;
-  background: rgba(242, 193, 78, 0.08);
+  color: var(--color-paper);
+  background: var(--color-vermilion);
+  box-shadow: 0.2em 0.2em 0 var(--color-ink);
   cursor: pointer;
 }
 
-.hud-complete-btn:hover,
+.hud-complete-btn:hover {
+  color: var(--color-ink);
+  background: var(--color-saffron);
+}
+
 .hud-complete-btn:active {
-  color: #14100a;
-  background: #f2c14e;
+  translate: 0.15em 0.15em;
+  box-shadow: 0.05em 0.05em 0 var(--color-ink);
 }
 
 .hud-complete-btn:focus-visible {
-  outline: 2px solid #f4ead0;
+  outline: 3px solid var(--color-ink);
   outline-offset: 3px;
 }
 
+/* Animations step instead of easing: a print has no in-betweens. */
 @keyframes hud-rise {
   from {
     opacity: 0;
