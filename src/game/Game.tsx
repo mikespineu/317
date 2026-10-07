@@ -21,7 +21,7 @@ export default function Game() {
   }, [])
 
   return (
-    <div className="game">
+    <div className="fixed inset-0 touch-none">
       <Canvas
         shadows
         camera={{ position: [0, 1.6, 2.2], rotation: [0, 0, 0], fov: 70 }}
@@ -34,10 +34,12 @@ export default function Game() {
       >
         <Level0 />
       </Canvas>
-      <div className="hud">
+      <div className="pointer-events-none absolute bottom-4 left-4 text-sm opacity-80">
         Light: {lightOn ? lightMode : 'off'} · F on/off · Q white/UV
       </div>
-      <div className="rotate-prompt">Rotate your device to landscape</div>
+      <div className="absolute inset-0 hidden place-content-center bg-ink text-center portrait-touch:grid">
+        Rotate your device to landscape
+      </div>
     </div>
   )
 }
