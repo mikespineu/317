@@ -1,3 +1,4 @@
+import { carriedBattery } from '#/lib/progress'
 import { create } from 'zustand'
 import { currentRoom } from './room/rooms'
 import type { RoomDef } from './room/roomDef'
@@ -104,7 +105,9 @@ export interface GameState {
   resetLevel(): void
 }
 
-const chargeOf = (def: RoomDef) => def.startCharge ?? tuning.startCharge
+// The battery the player arrived with wins over the room's own start.
+const chargeOf = (def: RoomDef) =>
+  carriedBattery(def.id)?.charge ?? def.startCharge ?? tuning.startCharge
 
 // Everything a level restart puts back, for the given room. Environment
 // fields (backend, touch, paused) are left alone.
@@ -120,7 +123,7 @@ const initialLevelState = (def: RoomDef) => ({
   lightMode: 'white' as LightMode,
   switching: false,
   batteryLevel: levelOf(chargeOf(def)),
-  spares: 0,
+  spares: carriedBattery(def.id)?.spares ?? 0,
   swapping: false,
   items: {} as Record<string, number>,
   flags: {} as Record<string, boolean>,

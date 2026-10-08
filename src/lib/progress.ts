@@ -97,3 +97,37 @@ export async function imageDataUrl(url: string): Promise<string | null> {
     return null
   }
 }
+
+// --- Battery carried into the next room ------------------------------------
+// The next room is another page load, so the flashlight's charge and the spare
+// packs cross in sessionStorage. It is kept for the tab's session and tied to
+// the room it was carried into, so "Play again" there starts the same way.
+const CARRY_KEY = '317:carry:v1'
+
+export interface CarriedBattery {
+  charge: number // 0..1
+  spares: number
+}
+
+export function carryBattery(roomId: string, battery: CarriedBattery) {
+  try {
+    sessionStorage.setItem(CARRY_KEY, JSON.stringify({ roomId, ...battery }))
+  } catch {
+    // No storage: the next room starts with its own battery.
+  }
+}
+
+export function carriedBattery(roomId: string): CarriedBattery | null {
+  try {
+    const saved = JSON.parse(sessionStorage.getItem(CARRY_KEY) ?? 'null')
+    if (saved?.roomId !== roomId) return null
+    const { charge, spares } = saved
+    if (!Number.isFinite(charge) || !Number.isFinite(spares)) return null
+    return {
+      charge: Math.min(1, Math.max(0, charge)),
+      spares: Math.max(0, Math.floor(spares)),
+    }
+  } catch {
+    return null
+  }
+}
