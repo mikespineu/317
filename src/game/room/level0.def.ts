@@ -4,7 +4,7 @@ import type { RoomDef } from './roomDef'
 // read later (see roomDef.ts).
 export const level0 = {
   id: 'level-0',
-  title: 'The Study',
+  title: { en: 'The Study', pl: 'Gabinet' },
   scene: '/models/level0/level-0.glb',
   spawn: 'Spawn_Player',
   atmosphere: {
@@ -43,13 +43,13 @@ export const level0 = {
     { node: 'Pickup_Key', item: 'key', visibleWhen: 'flag:drawer-open' },
   ],
   props: [
-    { node: 'Book_1', label: 'book', throwable: true },
-    { node: 'Book_2', label: 'book', throwable: true },
-    { node: 'Book_3', label: 'book', throwable: true },
-    { node: 'Book_4', label: 'book', throwable: true },
+    { node: 'Book_1', label: { en: 'book', pl: 'książkę' }, throwable: true },
+    { node: 'Book_2', label: { en: 'book', pl: 'książkę' }, throwable: true },
+    { node: 'Book_3', label: { en: 'book', pl: 'książkę' }, throwable: true },
+    { node: 'Book_4', label: { en: 'book', pl: 'książkę' }, throwable: true },
   ],
   ghosts: [{ id: 'wisp-1', type: 'wisp', mesh: 'Wisp', spawn: 'Spawn_Wisp', baseScore: 100 }],
-  mirror: { node: 'Mirror_Surface', testWord: 'AWAKE' },
+  mirror: { node: 'Mirror_Surface', testWord: { en: 'AWAKE', pl: 'CZUWAJ' } },
   emergencyPack: { pickup: 'Pickup_Battery' },
   // Find the light, then (until the painting's code is found) learn about UV.
   guide: [
@@ -57,15 +57,24 @@ export const level0 = {
       id: 'find-light',
       unless: 'light:held',
       delay: 0,
-      text: 'Too dark to see. Find the flashlight on the floor and press **E** to pick it up.',
-      touchText: 'Too dark to see. Find the flashlight on the floor and tap it.',
+      text: {
+        en: 'Too dark to see. Find the flashlight on the floor and press **E** to pick it up.',
+        pl: 'Za ciemno, by coś widzieć. Znajdź latarkę na podłodze i naciśnij **E**, aby ją podnieść.',
+      },
+      touchText: {
+        en: 'Too dark to see. Find the flashlight on the floor and tap it.',
+        pl: 'Za ciemno, by coś widzieć. Znajdź latarkę na podłodze i dotknij jej.',
+      },
     },
     {
       id: 'uv-sweep',
       when: ['light:held', 'uv:on'],
       unless: 'clue:drawer-code',
       delay: 0,
-      text: 'The UV light shows what the eye cannot. Sweep it slowly across the walls.',
+      text: {
+        en: 'The UV light shows what the eye cannot. Sweep it slowly across the walls.',
+        pl: 'Światło UV pokazuje to, czego oko nie widzi. Przesuwaj je powoli po ścianach.',
+      },
     },
     {
       // Waits a while after the flashlight is found, so the player looks around first.
@@ -74,8 +83,14 @@ export const level0 = {
       unless: 'clue:drawer-code',
       delay: 20,
       delayKey: 'uvHintDelay',
-      text: 'Something may be hidden in this room. Press **Q** for UV light, then sweep the walls.',
-      touchText: 'Something may be hidden in this room. Tap the UV button, then sweep the walls.',
+      text: {
+        en: 'Something may be hidden in this room. Press **Q** for UV light, then sweep the walls.',
+        pl: 'W tym pokoju może być coś ukrytego. Naciśnij **Q**, aby włączyć światło UV, i oświetl ściany.',
+      },
+      touchText: {
+        en: 'Something may be hidden in this room. Tap the UV button, then sweep the walls.',
+        pl: 'W tym pokoju może być coś ukrytego. Dotknij przycisku UV i oświetl ściany.',
+      },
     },
   ],
   debugSkips: [
@@ -85,9 +100,13 @@ export const level0 = {
     { label: 'key in inventory', take: 'Pickup_Key' },
   ],
   exit: { node: 'Interact_Door', requires: 'item:key' },
+  nextRoom: 'entrance-hall',
   complete: {
-    eyebrow: '3.17 · the study',
-    title: 'Level complete',
-    line: 'The lock turns. Cold air from the hallway.',
+    eyebrow: { en: '3.17 · the study', pl: '3.17 · gabinet' },
+    title: { en: 'Level complete', pl: 'Poziom ukończony' },
+    line: {
+      en: 'The lock turns. Cold air from the hallway.',
+      pl: 'Zamek ustępuje. Z korytarza wieje chłodem.',
+    },
   },
 } satisfies RoomDef

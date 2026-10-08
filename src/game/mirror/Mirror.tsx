@@ -20,6 +20,7 @@ import { useGame } from '../store'
 import { tuning } from '../tuning'
 import { createMirrorClue } from './mirrorClue'
 import type { MirrorClue } from './mirrorClue'
+import { tr } from '#/i18n'
 import { dressMirrorText, MIRROR_ONLY_LAYER } from './mirrorText'
 import type { MirrorText } from './mirrorText'
 
@@ -156,7 +157,9 @@ export function Mirror() {
     // On their own layer the main view never draws them; castShadow = false
     // keeps them out of the flashlight's shadow pass, whose camera borrows the
     // layers of whichever camera is rendering.
-    const texts = room.mirrorOnly.map(dressMirrorText)
+    const texts = room.mirrorOnly.map((m) =>
+      dressMirrorText(m, clueDef?.text && m.name === clueDef.node ? tr(clueDef.text) : undefined),
+    )
     const clueText = clueDef && room.mirrorOnly.find((m) => m.name === clueDef.node)
     const clue =
       clueDef && clueText
@@ -180,7 +183,7 @@ export function Mirror() {
     mesh.castShadow = false
     mesh.receiveShadow = false
 
-    const word = testWord ? buildWord(room, testWord, worldCentre, worldNormal) : null
+    const word = testWord ? buildWord(room, tr(testWord), worldCentre, worldNormal) : null
     if (word) room.scene.add(word.mesh)
     parts.current = { tint, word: word?.material ?? null, texts, clue }
 

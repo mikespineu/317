@@ -1,7 +1,10 @@
 // The shape of a room definition, shared by every room. Definitions are plain
 // objects checked with `satisfies RoomDef`, shaped like the JSON the room
 // loader will read later (see the GDD). Tokens: 'item:x', 'flag:x', 'clue:x'.
-// Coordinates are three.js world space, in metres.
+// Coordinates are three.js world space, in metres. Anything the player reads
+// is a Localized: one string per language.
+import type { Localized } from '#/i18n'
+
 export type Token = string
 export type Vec3 = readonly [number, number, number]
 
@@ -34,12 +37,15 @@ export type InteractableType =
 export interface InteractableDef {
   node: string
   type: InteractableType
+  // What 'lid' and 'search' prompts call it ("Open the chest lid"), in the
+  // accusative where the language has one. Default: the node name, in English.
+  name?: Localized
   enabled?: boolean // false: bound and validated, but does nothing (return-visit content)
   requires?: Token
   sets?: Token
   gives?: readonly Token[]
-  line?: string // what a 'locked', 'inspect' or 'search' answers with
-  lockedLine?: string // shown when `requires` is not met
+  line?: Localized // what a 'locked', 'inspect' or 'search' answers with
+  lockedLine?: Localized // shown when `requires` is not met
   slide?: number // drawer travel
   slideDir?: Vec3 // drawer axis in the node's parent space; default is the node's +Z
   openAngleDeg?: number // door / lid swing, signed
@@ -67,7 +73,7 @@ export interface PickupDef {
 // prop grabbable and throwable with the prop physics.
 export interface PropDef {
   node: string
-  label: string
+  label: Localized // follows "Grab" / "Throw": accusative where the language has one
   throwable?: boolean
 }
 
@@ -86,8 +92,8 @@ export interface GhostDef {
 }
 
 export interface NoteDef {
-  title: string
-  body: readonly string[]
+  title: Localized
+  body: readonly Localized[]
   gives?: Token
 }
 
@@ -102,8 +108,8 @@ export interface GuideStep {
   unless?: Token | readonly Token[] // none may hold
   delay: number
   delayKey?: string // a tuning.ts key that replaces `delay`, so it stays live in the debug panel
-  text: string // **X** marks a key cap, *x* is set in italics
-  touchText?: string // replaces `text` on touch
+  text: Localized // **X** marks a key cap, *x* is set in italics
+  touchText?: Localized // replaces `text` on touch
 }
 
 // One step of the debug panel's "Skip to" list. Every part is skipped when
@@ -120,7 +126,7 @@ export interface DebugSkip {
 
 export interface RoomDef {
   id: string
-  title: string
+  title: Localized
   scene: string
   spawn: string
   spawnYawDeg?: number // 0 looks north (-Z)
@@ -149,8 +155,10 @@ export interface RoomDef {
 
   mirror?: {
     node: string
-    testWord?: string // a reversed word painted on the facing wall (Level 0's reflection test)
-    clue?: { node: string; gives: Token } // mirror-only writing that grants a clue when read
+    testWord?: Localized // a reversed word painted on the facing wall (Level 0's reflection test)
+    // Mirror-only writing that grants a clue when read. `text` is what is painted;
+    // without it the node's own userData.text is used.
+    clue?: { node: string; text?: Localized; gives: Token }
   }
 
   notes?: Readonly<Record<string, NoteDef>>
@@ -161,6 +169,13 @@ export interface RoomDef {
   // Debug panel: each skip applies the earlier ones too (see DebugPanel).
   debugSkips?: readonly DebugSkip[]
   exit: { node: string; requires?: Token }
-  complete: { eyebrow: string; title?: string; line: string; next?: string; stars?: boolean }
-  secrets?: { total: number; note?: string } // note: why they cannot be found yet
+  nextRoom?: string // id of the room the complete card offers to play next
+  complete: {
+    eyebrow: Localized
+    title?: Localized
+    line: Localized
+    next?: Localized
+    stars?: boolean
+  }
+  secrets?: { total: number; note?: Localized } // note: why they cannot be found yet
 }

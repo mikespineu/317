@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react'
+import { useT } from '#/i18n'
 import { useGame } from '../store'
 import { onFlash } from './cameraFx'
 import './camera-overlay.css'
@@ -7,6 +8,7 @@ const FLASH_MS = 150
 
 // Viewfinder while the camera is raised, and the white flash on a shot.
 export function CameraOverlay() {
+  const t = useT()
   const raised = useGame((s) => s.cameraRaised)
   const locked = useGame((s) => s.uiLock !== null)
   const touch = useGame((s) => s.touch)
@@ -44,7 +46,7 @@ export function CameraOverlay() {
         <i className="viewfinder-corner is-br" />
         <div className="viewfinder-centre" />
         {!touch && (
-          <div className="viewfinder-hint print-ink">Click to shoot · P or Esc to leave</div>
+          <div className="viewfinder-hint print-ink">{t('camera.hint')}</div>
         )}
         <div className="viewfinder-cooldown">
           <div className="viewfinder-cooldown-fill" ref={coolEl} />

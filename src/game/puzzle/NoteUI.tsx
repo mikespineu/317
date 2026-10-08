@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react'
+import { tr, useT } from '#/i18n'
 import { useRoomDef } from '../room/RoomContext'
 import { useGame } from '../store'
 import './note.css'
@@ -11,6 +12,7 @@ const OPEN_GUARD_MS = 300
 // the 'note' UI lock with openNote; the input module releases and restores
 // pointer lock from that, as for the padlock.
 export function NoteUI() {
+  const t = useT()
   const id = useGame((s) => s.openNote)
   const touch = useGame((s) => s.touch)
   const note = useRoomDef().notes?.[id ?? '']
@@ -44,23 +46,23 @@ export function NoteUI() {
       className="note-overlay"
       role="dialog"
       aria-modal="true"
-      aria-label={note.title}
+      aria-label={tr(note.title)}
       onClick={dismiss}
     >
       <article className="note print-paper">
-        <h2 className="note-title">{note.title}</h2>
+        <h2 className="note-title">{tr(note.title)}</h2>
         {note.body.map((line, i) => (
           <p key={i} className="note-line">
-            {line}
+            {tr(line)}
           </p>
         ))}
         <button type="button" className="note-close" onClick={dismiss}>
-          Put it away
+          {t('note.away')}
         </button>
       </article>
       {!touch && (
         <p className="note-hint">
-          <kbd>E</kbd> or <kbd>Esc</kbd> put it away
+          <kbd>E</kbd> {t('note.or')} <kbd>Esc</kbd> {t('note.hint')}
         </p>
       )}
     </div>

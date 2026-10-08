@@ -34,6 +34,7 @@ let locked = false
 let relocking = false
 let relockTimer = 0
 let portrait = false
+let touchPaused = false
 let lastTouchAt = -Infinity
 
 // The intro holds the UI lock but is not a modal: the pointer stays locked
@@ -42,9 +43,15 @@ const modal = (lock: UiLock) => lock !== null && lock !== 'intro'
 
 export function syncPaused() {
   const { touch, uiLock, setPaused } = useGame.getState()
-  // Touch has no pointer lock, so there only the rotate prompt pauses.
+  // Touch has no pointer lock, so there the rotate prompt and the pause button pause.
   const unlocked = !touch && !locked && !relocking && !modal(uiLock)
-  setPaused(portrait || unlocked)
+  setPaused(portrait || touchPaused || unlocked)
+}
+
+// The pause button on touch, and the tap on the paused card that resumes.
+export function setTouchPaused(value: boolean) {
+  touchPaused = value
+  syncPaused()
 }
 
 export function setPortrait(value: boolean) {
