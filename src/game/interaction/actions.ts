@@ -1,5 +1,6 @@
 import { Box3, Vector3 } from 'three/webgpu'
 import type { Material, Mesh, Object3D } from 'three/webgpu'
+import { lookup, t, tr } from '#/i18n'
 import { sfx } from '../audio/sfx'
 import { apply, check, consume } from '../puzzle/chain'
 import { grabProp } from '../props/propPhysics'
@@ -45,11 +46,16 @@ const openedFlag = (node: string) => `flag:opened:${node}`
 // A search has no open state of its own either when the definition sets nothing.
 const doneFlag = (def: InteractableDef) => def.sets ?? openedFlag(def.node)
 
-// 'Interact_Coat_Pocket' -> 'coat pocket', for prompts built from the node name.
-const nameOf = (node: string) => node.replace(INTERACT, '').replace(/_/g, ' ').toLowerCase()
+// What a prompt calls the thing. Without a name in the definition:
+// 'Interact_Coat_Pocket' -> 'coat pocket'.
+const nameOf = (def: InteractableDef) =>
+  def.name ? tr(def.name) : def.node.replace(INTERACT, '').replace(/_/g, ' ').toLowerCase()
 
-export function itemLabel(item: string) {
-  return item === 'battery' ? 'battery pack' : item.replace(/-/g, ' ')
+// 'acc' is the form after a verb ("Pick up ..."), for languages that have one.
+export function itemLabel(item: string, form?: 'acc') {
+  return (
+    (form && lookup(`item.${item}.${form}`)) ?? lookup(`item.${item}`) ?? item.replace(/-/g, ' ')
+  )
 }
 
 // The interactable a lock's mesh belongs to. The interaction ray uses it, so
@@ -66,38 +72,40 @@ export function promptFor(node: string | null): Prompt | null {
   const pickup = findPickup(node)
   if (pickup) {
     if (useGame.getState().pickedUp[node] || !check(pickup.visibleWhen)) return null
-    return { label: `Pick up ${itemLabel(pickup.item)}`, usable: true }
+    return { label: t('prompt.pickUp', { item: itemLabel(pickup.item, 'acc') }), usable: true }
   }
   const prop = findProp(node)
-  if (prop) return { label: `Grab ${prop.label}`, usable: true }
+  if (prop) return { label: t('prompt.grab', { prop: tr(prop.label) }), usable: true }
   const def = findInteractable(node)
   if (!def) return null
   switch (def.type) {
     case 'drawer':
-      if (def.lock && !check(def.lock.sets)) return { label: 'Unlock drawer', usable: true }
-      return check(def.sets) ? null : { label: 'Open drawer', usable: true }
+      if (def.lock && !check(def.lock.sets)) return { label: t('prompt.drawer.unlock'), usable: true }
+      return check(def.sets) ? null : { label: t('prompt.drawer.open'), usable: true }
     case 'lid':
       if (check(def.sets)) return null
       if (def.lock && !check(def.lock.sets))
-        return { label: `Unlock the ${nameOf(node)}`, usable: true }
-      return { label: `Open the ${nameOf(node)}`, usable: true }
+        return { label: t('prompt.lid.unlock', { name: nameOf(def) }), usable: true }
+      return { label: t('prompt.lid.open', { name: nameOf(def) }), usable: true }
     case 'search':
-      return check(doneFlag(def)) ? null : { label: `Search the ${nameOf(node)}`, usable: true }
+      return check(doneFlag(def))
+        ? null
+        : { label: t('prompt.search', { name: nameOf(def) }), usable: true }
     case 'locked':
-      return { label: 'Try', usable: true }
+      return { label: t('prompt.try'), usable: true }
     case 'inspect':
-      return { label: 'Look', usable: true }
+      return { label: t('prompt.look'), usable: true }
     case 'door':
       if (check(openedFlag(node))) return null
-      return { label: check(def.requires) ? 'Open door' : 'Locked', usable: true }
+      return { label: t(check(def.requires) ? 'prompt.door.open' : 'prompt.door.locked'), usable: true }
     case 'candle': {
       const what = (def.flames?.length ?? 1) > 1 ? 'candles' : 'candle'
       const lit = useGame.getState().flags[CANDLE_FLAG]
-      return { label: lit ? `Blow out the ${what}` : `Light the ${what}`, usable: true }
+      return { label: t(`prompt.${what}.${lit ? 'out' : 'light'}`), usable: true }
     }
     case 'uv-reveal':
       // A clue surface, not something to use.
-      return check(def.gives) ? null : { label: 'Something faint on the canvas', usable: false }
+      return check(def.gives) ? null : { label: t('prompt.uvFaint'), usable: false }
     default:
       return null
   }
@@ -105,7 +113,11 @@ export function promptFor(node: string | null): Prompt | null {
 
 // The prompt while a prop is in the player's hands: the next press throws it.
 export function heldPrompt(node: string): Prompt {
-  return { label: `Throw ${findProp(node)?.label ?? 'it'}`, usable: true }
+  const prop = findProp(node)
+  return {
+    label: prop ? t('prompt.throw', { prop: tr(prop.label) }) : t('prompt.throwIt'),
+    usable: true,
+  }
 }
 
 // A short note for the HUD once a clue is known and a lock is still shut.
@@ -113,7 +125,7 @@ export function heldPrompt(node: string): Prompt {
 export function clueNote(): string | null {
   if (useGame.getState().clues.length === 0) return null
   const locked = interactables.some((i) => i.lock?.type === 'code' && !check(i.lock.sets))
-  return locked ? 'Code found. Try the desk drawer.' : null
+  return locked ? t('hud.codeFound') : null
 }
 
 // Pickups show iff they were not taken and their condition holds. Runs on
@@ -153,7 +165,7 @@ export function interactWith(node: string) {
       return
     }
     sfx.play('pickup')
-    showMessage(`Picked up: ${itemLabel(pickup.item)}`)
+    showMessage(t('msg.pickedUp', { item: itemLabel(pickup.item) }))
     return
   }
   if (findProp(node)) {
@@ -169,9 +181,9 @@ export function interactWith(node: string) {
   else if (def.type === 'candle') toggleCandle()
   else if (def.type === 'locked') {
     sfx.play('locked')
-    if (def.line) showMessage(def.line)
+    if (def.line) showMessage(tr(def.line))
   } else if (def.type === 'inspect') {
-    if (def.line) showMessage(def.line)
+    if (def.line) showMessage(tr(def.line))
   }
 }
 
@@ -205,7 +217,7 @@ export function applyItemToFocus(item: string) {
   if (paused) return
   const def = focus ? findInteractable(focus) : undefined
   if (def && def.requires === `item:${item}` && promptFor(def.node)) interactWith(def.node)
-  else showMessage(`Nothing here to use the ${itemLabel(item)} on.`)
+  else showMessage(t('msg.noUse', { item: itemLabel(item) }))
 }
 
 function operateDrawer(def: InteractableDef) {
@@ -217,7 +229,7 @@ function operateDrawer(def: InteractableDef) {
   if (check(def.sets)) return // already open, and it stays open
   if (!check(def.requires)) {
     sfx.play('locked')
-    showMessage(def.lockedLine ?? 'Locked. It needs a key.')
+    showMessage(def.lockedLine ? tr(def.lockedLine) : t('msg.needsKey'))
     return
   }
   const node = room?.nodes.get(def.node)
@@ -247,7 +259,7 @@ function operateDoor(def: InteractableDef) {
   if (check(openedFlag(def.node))) return
   if (!check(def.requires)) {
     sfx.play('locked')
-    showMessage(def.lockedLine ?? 'Locked. It needs a key.')
+    showMessage(def.lockedLine ? tr(def.lockedLine) : t('msg.needsKey'))
     return
   }
   const node = room?.nodes.get(def.node)
@@ -337,7 +349,7 @@ export function advanceSearch(dt: number) {
   apply(def.gives)
   apply(doneFlag(def))
   sfx.play('pickup')
-  if (def.line) showMessage(def.line)
+  if (def.line) showMessage(tr(def.line))
 }
 
 export function clearSearch() {
@@ -362,7 +374,7 @@ export function tryCode(node: string, digits: readonly number[]): boolean {
   apply(lock.sets)
   sfx.play('padlockOpen')
   useGame.getState().setUiLock(null)
-  showMessage('The padlock falls open.')
+  showMessage(t('msg.padlockOpen'))
 
   const mesh = room?.nodes.get(lock.mesh)
   if (mesh) {

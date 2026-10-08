@@ -1,3 +1,5 @@
+import { useT } from '#/i18n'
+import type { Key } from '#/i18n'
 import { applyItemToFocus, clueNote, heldPrompt, itemLabel, promptFor } from '../interaction/actions'
 import { useHud } from '../interaction/hudState'
 import { useRoomDef } from '../room/RoomContext'
@@ -10,6 +12,7 @@ import './hud.css'
 // card takes over when the exit opens.
 // Nothing here takes pointer events except real buttons.
 export function Hud() {
+  useT() // the prompt, guide and note are built outside React
   const touch = useGame((s) => s.touch)
   const uiLock = useGame((s) => s.uiLock)
   const cameraRaised = useGame((s) => s.cameraRaised)
@@ -80,30 +83,32 @@ export function Hud() {
 }
 
 // `true` marks the keys that do nothing until the flashlight is in hand.
-const CONTROLS = [
-  ['WASD', 'Move', false],
-  ['E', 'Interact', false],
-  ['F', 'Light', true],
-  ['Q', 'White / UV', true],
-  ['R', 'Swap battery', true],
-  ['P / RMB', 'Photo mode', false],
-  ['LMB', 'Shoot (photo mode)', false],
-  ['Esc', 'Leave photo mode / pause', false],
-] as const
+// A key cap is the same in every language unless it is a dictionary key.
+const CONTROLS: [key: string, action: Key, needsLight: boolean][] = [
+  ['WASD', 'controls.move', false],
+  ['E', 'controls.interact', false],
+  ['F', 'controls.light', true],
+  ['Q', 'controls.mode', true],
+  ['R', 'controls.swap', true],
+  ['controls.key.photo', 'controls.photo', false],
+  ['controls.key.shoot', 'controls.shoot', false],
+  ['Esc', 'controls.leave', false],
+]
 
 // Always-on key reference, bottom-left. Desktop only: on touch that corner
 // is the joystick and the buttons carry their own labels.
 function Controls({ hasLight }: { hasLight: boolean }) {
+  const t = useT()
   const uv = useRoomDef().lights?.uv !== false
   const shown = CONTROLS.filter(
     ([key, , needsLight]) => (hasLight || !needsLight) && (uv || key !== 'Q'),
   )
   return (
-    <dl className="hud-controls print-ink" aria-label="Controls">
+    <dl className="hud-controls print-ink" aria-label={t('controls.label')}>
       {shown.map(([key, action]) => (
         <div key={key}>
-          <dt>{key}</dt>
-          <dd>{action}</dd>
+          <dt>{key.startsWith('controls.') ? t(key as Key) : key}</dt>
+          <dd>{t(action)}</dd>
         </div>
       ))}
     </dl>
@@ -111,6 +116,7 @@ function Controls({ hasLight }: { hasLight: boolean }) {
 }
 
 function Battery() {
+  const t = useT()
   const level = useGame((s) => s.batteryLevel)
   const spares = useGame((s) => s.spares)
   const swapping = useGame((s) => s.swapping)
@@ -131,7 +137,11 @@ function Battery() {
     <div
       className={classes.filter(Boolean).join(' ')}
       role="img"
-      aria-label={`Battery ${level}, ${spares} spare, ${mode === 'uv' ? 'UV' : 'white'} light`}
+      aria-label={t('battery.aria', {
+        level: t(`battery.level.${level}`),
+        spares,
+        mode: t(`battery.mode.${mode}`),
+      })}
     >
       <div className="hud-battery-shell">
         {[0, 1, 2].map((i) => (
@@ -141,13 +151,13 @@ function Battery() {
       <span className="hud-battery-mode">{mode === 'uv' ? 'UV' : ''}</span>
       {spares > 0 && <span className="hud-battery-spares">+{spares}</span>}
       {swapping ? (
-        <span className="hud-battery-text">Swapping…</span>
+        <span className="hud-battery-text">{t('battery.swapping')}</span>
       ) : (
         weak &&
         (spares > 0 ? (
-          <span className="hud-battery-text">{touch ? 'Swap the pack' : 'R to swap'}</span>
+          <span className="hud-battery-text">{t(touch ? 'battery.swap.touch' : 'battery.swap')}</span>
         ) : (
-          level === 'empty' && <span className="hud-battery-text">Dead</span>
+          level === 'empty' && <span className="hud-battery-text">{t('battery.empty')}</span>
         ))
       )}
     </div>
@@ -155,6 +165,7 @@ function Battery() {
 }
 
 function ItemBar() {
+  const t = useT()
   const items = useGame((s) => s.items)
   const { pickups } = useRoomDef()
   // Anything picked up with a note attached is paper.
@@ -168,7 +179,7 @@ function ItemBar() {
           key={id}
           type="button"
           className="hud-item print-paper"
-          aria-label={`Use ${itemLabel(id)}`}
+          aria-label={t('item.use', { item: itemLabel(id) })}
           onPointerDown={(e) => e.stopPropagation()}
           onClick={(e) => {
             e.stopPropagation()

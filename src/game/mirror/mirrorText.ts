@@ -97,8 +97,9 @@ export interface MirrorText {
 // Dresses a MirrorOnly_ mesh as painted writing: lit, vermilion, the text as
 // its alpha. With no glow it shows only where the flashlight lights the wall.
 // The mesh moves to MIRROR_ONLY_LAYER, so only the reflection's camera draws it.
-export function dressMirrorText(mesh: Mesh): MirrorText {
-  const text = typeof mesh.userData.text === 'string' ? mesh.userData.text : FALLBACK_TEXT
+export function dressMirrorText(mesh: Mesh, painted?: string): MirrorText {
+  const text =
+    painted ?? (typeof mesh.userData.text === 'string' ? mesh.userData.text : FALLBACK_TEXT)
   const map = textTexture(text, planeAspect(mesh))
   const glow = uniform(tuning.mirrorTextGlow)
   const paint = new Color(VERMILION)

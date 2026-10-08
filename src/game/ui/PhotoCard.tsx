@@ -1,14 +1,16 @@
 import { useEffect } from 'react'
+import { useT } from '#/i18n'
+import type { Key } from '#/i18n'
 import { useGame } from '../store'
 import type { PhotoParts } from '../store'
 import { tuning } from '../tuning'
 import './photo-card.css'
 
-const PARTS: { key: keyof PhotoParts; label: string }[] = [
-  { key: 'lit', label: 'Lit' },
-  { key: 'framed', label: 'Framed' },
-  { key: 'close', label: 'Close' },
-  { key: 'sharp', label: 'Sharp' },
+const PARTS: { key: keyof PhotoParts; label: Key }[] = [
+  { key: 'lit', label: 'photo.lit' },
+  { key: 'framed', label: 'photo.framed' },
+  { key: 'close', label: 'photo.close' },
+  { key: 'sharp', label: 'photo.sharp' },
 ]
 
 // Input that arrives right as the card appears belongs to the shot, not the card.
@@ -18,6 +20,7 @@ const CLOSE_KEYS = new Set(['KeyE', 'Escape', 'Enter', 'Space'])
 // The photo just taken and what it scored. Open while uiLock is 'photo';
 // game input is suppressed then, so the card listens for its own dismissal.
 export function PhotoCard() {
+  const t = useT()
   const open = useGame((s) => s.uiLock === 'photo')
   const shot = useGame((s) => s.lastShot)
 
@@ -50,27 +53,27 @@ export function PhotoCard() {
   const found = parts !== null && score !== null
 
   return (
-    <div className="photo-layer" role="dialog" aria-label="Photograph">
+    <div className="photo-layer" role="dialog" aria-label={t('photo.label')}>
       <figure className={`photo-card print-paper${found ? '' : ' is-empty'}`}>
         <div className="photo-print">
           {shot.url ? (
-            <img src={shot.url} alt="The photograph you just took" draggable={false} />
+            <img src={shot.url} alt={t('photo.alt')} draggable={false} />
           ) : (
             <div className="photo-blank" />
           )}
-          {shot.best && <span className="photo-best">Best</span>}
+          {shot.best && <span className="photo-best">{t('photo.best')}</span>}
         </div>
         <figcaption className="photo-notes">
           {found ? (
             <>
               <p className="photo-total">
                 <strong>{score}</strong>
-                <span>points</span>
+                <span>{t('photo.points')}</span>
               </p>
               <ul className="photo-parts">
                 {PARTS.map(({ key, label }) => (
                   <li key={key}>
-                    <span className="photo-part-label">{label}</span>
+                    <span className="photo-part-label">{t(label)}</span>
                     <span className="photo-bar">
                       <span
                         className="photo-bar-fill"
@@ -82,9 +85,9 @@ export function PhotoCard() {
               </ul>
             </>
           ) : (
-            <p className="photo-nothing">Nothing there…</p>
+            <p className="photo-nothing">{t('photo.nothing')}</p>
           )}
-          <p className="photo-hint">Tap or press E to continue</p>
+          <p className="photo-hint">{t('photo.hint')}</p>
         </figcaption>
       </figure>
     </div>

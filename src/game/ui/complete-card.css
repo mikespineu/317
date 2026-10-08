@@ -182,3 +182,26 @@
     animation: none;
   }
 }
+
+/* The next room when there is one, then play again: stacked, equal width. */
+.complete-actions {
+  display: grid;
+  gap: 4px;
+}
+
+.hud-complete-btn.is-second {
+  color: var(--color-ink);
+  background: var(--color-paper-shade);
+}
+
+.complete-about {
+  font-size: 12px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--color-ink);
+  font-family: inherit;
+  text-decoration: underline;
+  background: none;
+  border: 0;
+  cursor: pointer;
+}

@@ -1,3 +1,7 @@
+import { useEffect, useRef, useState } from 'react'
+import { AboutOverlay } from '#/components/AboutOverlay'
+import { tr, useT } from '#/i18n'
+import { imageDataUrl, recordRoom } from '#/lib/progress'
 import { useRoomDef } from '../room/RoomContext'
 import { useGame } from '../store'
 import type { Photo } from '../store'
@@ -8,17 +12,24 @@ function clock(seconds: number) {
   return `${Math.floor(whole / 60)}:${String(whole % 60).padStart(2, '0')}`
 }
 
+// The next room is another page load: a room is fixed for the life of the page.
+function playRoom(id: string) {
+  window.location.assign(`/play?room=${encodeURIComponent(id)}`)
+}
+
 // The room-complete card: text from the definition, then whatever the room
 // keeps score of (time, stars, photographs, secrets). Shown by the HUD while
 // uiLock is 'complete'. The base card styles are the .hud-complete rules in
 // hud.css.
 export function CompleteCard() {
+  const t = useT()
   const def = useRoomDef()
   const photos = useGame((s) => s.photos)
   const startedAt = useGame((s) => s.startedAt)
   const completedAt = useGame((s) => s.completedAt)
 
-  const { eyebrow, title = 'Level complete', line, next, stars } = def.complete
+  const { eyebrow, line, next, stars } = def.complete
+  const title = def.complete.title ? tr(def.complete.title) : t('complete.title')
   const seconds =
     startedAt !== null && completedAt !== null ? Math.max(0, completedAt - startedAt) / 1000 : null
 
@@ -29,24 +40,40 @@ export function CompleteCard() {
 
   const par = def.parSeconds
   const earned: [label: string, on: boolean][] = [
-    ['Way out', true],
-    [ghosts.length === 1 ? 'Ghost caught' : 'Every ghost', shots.every(Boolean)],
+    [t('complete.star.exit'), true],
+    [t(ghosts.length === 1 ? 'complete.star.ghost' : 'complete.star.ghosts'), shots.every(Boolean)],
     [
-      par === undefined ? 'In time' : `Under ${clock(par)}`,
+      par === undefined ? t('complete.star.time') : t('complete.star.under', { time: clock(par) }),
       seconds !== null && par !== undefined && seconds < par,
     ],
   ]
 
+  // The run goes into the saved progress once, as the card appears.
+  const [about, setAbout] = useState(false)
+  const saved = useRef(false)
+  useEffect(() => {
+    if (saved.current) return
+    saved.current = true
+    const stars = def.complete.stars ? earned.filter(([, on]) => on).length : null
+    void Promise.all(
+      photos.map(async (p) => ({
+        ghostId: p.ghostId,
+        score: p.score,
+        image: await imageDataUrl(p.url),
+      })),
+    ).then((kept) => recordRoom(def.id, { seconds, stars, photos: kept }))
+  }, [])
+
   return (
     <div className="hud-complete" role="dialog" aria-modal="true" aria-label={title}>
       <div className="hud-complete-card print-paper">
-        <p className="hud-complete-eyebrow">{eyebrow}</p>
+        <p className="hud-complete-eyebrow">{tr(eyebrow)}</p>
         <h2>{title}</h2>
-        <p className="hud-complete-line">{line}</p>
+        <p className="hud-complete-line">{tr(line)}</p>
         {stars && (
           <ul
             className="complete-stars"
-            aria-label={`${earned.filter(([, on]) => on).length} of 3 stars`}
+            aria-label={t('complete.stars', { n: earned.filter(([, on]) => on).length })}
           >
             {earned.map(([label, on]) => (
               <li key={label} className={on ? 'is-earned' : ''}>
@@ -58,7 +85,7 @@ export function CompleteCard() {
         )}
         {stars && seconds !== null && (
           <p className="complete-time">
-            Time <strong>{clock(seconds)}</strong>
+            {t('complete.time')} <strong>{clock(seconds)}</strong>
           </p>
         )}
         {ghosts.length > 1 ? (
@@ -66,15 +93,19 @@ export function CompleteCard() {
             {shots.map((photo, i) =>
               photo ? (
                 <figure key={ghosts[i].id} className="hud-complete-photo">
-                  <img src={photo.url} alt={`Your best photograph of ghost ${i + 1}`} />
+                  <img src={photo.url} alt={t('complete.photo.ghost', { n: i + 1 })} />
                   <figcaption>
                     <strong>{Math.round(photo.score)}</strong>
                   </figcaption>
                 </figure>
               ) : (
                 <figure key={ghosts[i].id} className="hud-complete-photo is-missing">
-                  <div className="complete-blank" role="img" aria-label={`Ghost ${i + 1} not photographed`} />
-                  <figcaption>Not caught</figcaption>
+                  <div
+                    className="complete-blank"
+                    role="img"
+                    aria-label={t('complete.photo.missing', { n: i + 1 })}
+                  />
+                  <figcaption>{t('complete.photo.none')}</figcaption>
                 </figure>
               ),
             )}
@@ -82,9 +113,9 @@ export function CompleteCard() {
         ) : (
           best && (
             <figure className="hud-complete-photo">
-              <img src={best.url} alt="Your best photograph" />
+              <img src={best.url} alt={t('complete.photo.bestAlt')} />
               <figcaption>
-                Best photograph <strong>{Math.round(best.score)}</strong>
+                {t('complete.photo.best')} <strong>{Math.round(best.score)}</strong>
               </figcaption>
             </figure>
           )
@@ -93,17 +124,36 @@ export function CompleteCard() {
           <p className="complete-more">
             {def.secrets && (
               <span className="complete-secrets">
-                Secrets 0 of {def.secrets.total}
-                {def.secrets.note && <em> — {def.secrets.note}</em>}
+                {t('complete.secrets', { total: def.secrets.total })}
+                {def.secrets.note && <em> — {tr(def.secrets.note)}</em>}
               </span>
             )}
-            {next && <span>Next: {next} — coming soon</span>}
+            {next && <span>{t('complete.next', { next: tr(next) })}</span>}
           </p>
         )}
-        <button type="button" className="hud-complete-btn" onClick={() => window.location.reload()}>
-          Play again
+        <div className="complete-actions">
+          {def.nextRoom && (
+            <button
+              type="button"
+              className="hud-complete-btn"
+              onClick={() => playRoom(def.nextRoom!)}
+            >
+              {t('complete.playNext')}
+            </button>
+          )}
+          <button
+            type="button"
+            className={`hud-complete-btn${def.nextRoom ? ' is-second' : ''}`}
+            onClick={() => window.location.reload()}
+          >
+            {t('complete.again')}
+          </button>
+        </div>
+        <button type="button" className="complete-about" onClick={() => setAbout(true)}>
+          {t('about.title')}
         </button>
       </div>
+      {about && <AboutOverlay onClose={() => setAbout(false)} />}
     </div>
   )
 }

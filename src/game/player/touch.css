@@ -132,3 +132,17 @@
     transition: none;
   }
 }
+
+/* Pause: top right, away from both thumbs. */
+.touch-pause {
+  position: absolute;
+  top: calc(env(safe-area-inset-top, 0px) + 12px);
+  right: calc(env(safe-area-inset-right, 0px) + 14px);
+  width: 44px;
+  height: 44px;
+}
+
+.touch-pause svg {
+  width: 22px;
+  height: 22px;
+}

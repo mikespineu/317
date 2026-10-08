@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import type { PointerEvent as ReactPointerEvent } from 'react'
+import { lookup, useT } from '#/i18n'
 import { sfx } from '../audio/sfx'
 import { lockSymbols, trySymbols } from '../interaction/actions'
 import { useHud } from '../interaction/hudState'
@@ -27,6 +28,7 @@ export function SymbolLockUI() {
 }
 
 function SymbolLock({ node, wheels }: { node: string; wheels: readonly string[] }) {
+  const t = useT()
   const touch = useGame((s) => s.touch)
   const [turns, setTurns] = useState(() => {
     const code = lockSymbols(node)
@@ -92,7 +94,7 @@ function SymbolLock({ node, wheels }: { node: string; wheels: readonly string[] 
   }, [])
 
   return (
-    <div className="padlock-overlay" role="dialog" aria-modal="true" aria-label="Symbol lock">
+    <div className="padlock-overlay" role="dialog" aria-modal="true" aria-label={t('lock.symbol')}>
       <div className={`symbol-lock${solved ? ' is-open' : ''}`}>
         <div className="symbol-lock-plate">
           <div className="padlock-wheels">
@@ -110,15 +112,15 @@ function SymbolLock({ node, wheels }: { node: string; wheels: readonly string[] 
           </div>
           <div className="padlock-actions">
             <button type="button" className="padlock-btn" onClick={close}>
-              Leave
+              {t('lock.leave')}
             </button>
           </div>
         </div>
       </div>
       {!touch && (
         <p className="padlock-hint">
-          <kbd>←</kbd> <kbd>→</kbd> wheel &nbsp; <kbd>↑</kbd> <kbd>↓</kbd> turn &nbsp;{' '}
-          <kbd>Esc</kbd> leave
+          <kbd>←</kbd> <kbd>→</kbd> {t('lock.hint.wheel')} &nbsp; <kbd>↑</kbd> <kbd>↓</kbd>{' '}
+          {t('lock.hint.turn')} &nbsp; <kbd>Esc</kbd> {t('lock.hint.leave')}
         </p>
       )}
     </div>
@@ -131,7 +133,7 @@ function Icon({ id, current }: { id: string; current?: boolean }) {
       className={current ? 'is-current' : undefined}
       viewBox={`0 0 ${SYMBOL_BOX} ${SYMBOL_BOX}`}
       role={current ? 'img' : undefined}
-      aria-label={current ? (SYMBOLS[id]?.label ?? id) : undefined}
+      aria-label={current ? (lookup(`symbol.${id}`) ?? SYMBOLS[id]?.label ?? id) : undefined}
       aria-hidden={current ? undefined : true}
     >
       <path d={SYMBOLS[id]?.path} fill="currentColor" fillRule="evenodd" />
@@ -154,6 +156,7 @@ function Wheel({
   selected: boolean
   onStep(delta: number): void
 }) {
+  const t = useT()
   const strip = useRef<HTMLDivElement>(null)
   const drag = useRef<{ id: number; y: number } | null>(null)
 
@@ -189,7 +192,7 @@ function Wheel({
       <button
         type="button"
         className="wheel-arrow is-up"
-        aria-label={`Wheel ${index + 1} up`}
+        aria-label={t('lock.wheelUp', { n: index + 1 })}
         onClick={() => onStep(1)}
       />
       <div
@@ -209,7 +212,7 @@ function Wheel({
       <button
         type="button"
         className="wheel-arrow is-down"
-        aria-label={`Wheel ${index + 1} down`}
+        aria-label={t('lock.wheelDown', { n: index + 1 })}
         onClick={() => onStep(-1)}
       />
     </div>

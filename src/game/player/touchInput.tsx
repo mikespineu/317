@@ -1,9 +1,11 @@
 import { useEffect, useRef } from 'react'
 import type { PointerEvent as ReactPointerEvent, ReactNode, RefObject } from 'react'
+import { useT } from '#/i18n'
 import { emit } from '../events'
 import { useRoomDef } from '../room/RoomContext'
 import { runtime } from '../runtime'
 import { useGame } from '../store'
+import { setTouchPaused } from './desktopInput'
 import { tuning } from '../tuning'
 import './touch.css'
 
@@ -188,6 +190,7 @@ const svg = {
 } as const
 
 function Buttons() {
+  const t = useT()
   const hasLight = useGame((s) => s.hasLight)
   const lightOn = useGame((s) => s.lightOn)
   const lightMode = useGame((s) => s.lightMode)
@@ -201,7 +204,7 @@ function Buttons() {
     <div className="touch-buttons">
       {hasLight && (
         <TouchButton
-          label="Swap battery"
+          label={t('touch.swap')}
           area="battery"
           dim={spares === 0}
           badge={spares}
@@ -214,7 +217,7 @@ function Buttons() {
         </TouchButton>
       )}
       <TouchButton
-        label={raised ? 'Lower camera' : 'Raise camera'}
+        label={t(raised ? 'touch.camera.lower' : 'touch.camera.raise')}
         area="camera"
         tone="ghost"
         active={raised}
@@ -229,7 +232,7 @@ function Buttons() {
         <>
           {uv && (
             <TouchButton
-              label={lightMode === 'uv' ? 'Switch to white light' : 'Switch to UV light'}
+              label={t(lightMode === 'uv' ? 'touch.mode.white' : 'touch.mode.uv')}
               area="mode"
               tone="uv"
               active={lightMode === 'uv'}
@@ -239,7 +242,7 @@ function Buttons() {
             </TouchButton>
           )}
           <TouchButton
-            label={lightOn ? 'Light off' : 'Light on'}
+            label={t(lightOn ? 'touch.light.off' : 'touch.light.on')}
             area="light"
             tone="warm"
             active={lightOn}
@@ -253,14 +256,14 @@ function Buttons() {
         </>
       )}
       {raised && (
-        <TouchButton label="Take photo" area="shutter" tone="ghost" onPress={() => emit('shoot')}>
+        <TouchButton label={t('touch.shoot')} area="shutter" tone="ghost" onPress={() => emit('shoot')}>
           <svg {...svg}>
             <circle cx="12" cy="12" r="8.5" />
             <circle cx="12" cy="12" r="5" fill="currentColor" stroke="none" />
           </svg>
         </TouchButton>
       )}
-      <TouchButton label="Interact" area="interact" onPress={() => emit('interact', {})}>
+      <TouchButton label={t('touch.interact')} area="interact" onPress={() => emit('interact', {})}>
         <svg {...svg}>
           <path d="M9 12V5.5a1.5 1.5 0 0 1 3 0V11" />
           <path d="M12 11V9.5a1.5 1.5 0 0 1 3 0V12" />
@@ -278,6 +281,7 @@ export function TouchControls() {
   const knob = useRef<HTMLDivElement>(null)
   useTouchSurface(base, knob)
 
+  const t = useT()
   const touch = useGame((s) => s.touch)
   const hidden = useGame((s) => s.paused || s.uiLock !== null)
   if (!touch) return null
@@ -288,6 +292,19 @@ export function TouchControls() {
         <div ref={knob} className="touch-knob" />
       </div>
       {!hidden && <Buttons />}
+      {/* On click, not on press: the paused card must not get the same tap. */}
+      {!hidden && (
+        <button
+          type="button"
+          className="touch-btn touch-pause"
+          aria-label={t('touch.pause')}
+          onClick={() => setTouchPaused(true)}
+        >
+          <svg {...svg}>
+            <path d="M9 6v12M15 6v12" strokeWidth={2.4} />
+          </svg>
+        </button>
+      )}
     </div>
   )
 }

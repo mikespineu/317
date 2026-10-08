@@ -1,10 +1,38 @@
+import { useState } from 'react'
 import { Link, createFileRoute } from '@tanstack/react-router'
+import { AboutOverlay } from '#/components/AboutOverlay'
+import { LANGS, LANG_NAMES, setLang, useLang, useT } from '#/i18n'
 
 export const Route = createFileRoute('/')({ component: TitleScreen })
 
 function TitleScreen() {
+  const t = useT()
+  const lang = useLang()
+  const [about, setAbout] = useState(false)
   return (
     <main className="relative grid min-h-dvh place-content-center justify-items-center gap-6 overflow-x-clip bg-indigo p-4 text-center">
+      <div
+        role="group"
+        aria-label={t('title.language')}
+        className="absolute top-4 right-4 z-10 flex border-2 border-ink shadow-[0.2em_0.2em_0_var(--color-ink)]"
+      >
+        {LANGS.map((code) => (
+          <button
+            key={code}
+            type="button"
+            lang={code}
+            aria-pressed={code === lang}
+            onClick={() => setLang(code)}
+            className={`cursor-pointer px-3 py-1.5 font-display text-sm tracking-[0.1em] not-first:border-l-2 not-first:border-ink ${
+              code === lang
+                ? 'bg-vermilion text-paper'
+                : 'bg-paper bg-[image:var(--paper-grain)] text-ink hover:bg-saffron'
+            }`}
+          >
+            {LANG_NAMES[code]}
+          </button>
+        ))}
+      </div>
       {/* The moon from the night prints, with the title printed over it. */}
       <div
         aria-hidden="true"
@@ -14,24 +42,24 @@ function TitleScreen() {
         3.17
       </h1>
       <p className="print-paper relative px-4 py-1.5 font-display text-base italic">
-        The clock stopped. The house remembers.
+        {t('title.tagline')}
       </p>
       <section className="print-paper relative max-w-md px-6 py-4 text-left">
         <h2 className="mb-2 font-display text-sm font-bold tracking-[0.3em] text-vermilion uppercase">
-          Your task
+          {t('title.task')}
         </h2>
         <ol className="grid gap-2 font-display text-base">
           <li className="flex gap-3">
             <span className="grid size-6 flex-none place-items-center border-2 border-ink bg-vermilion text-sm font-bold text-paper">
               1
             </span>
-            Find the way out of the room.
+            {t('goal.exit')}
           </li>
           <li className="flex gap-3">
             <span className="grid size-6 flex-none place-items-center border-2 border-ink bg-vermilion text-sm font-bold text-paper">
               2
             </span>
-            Photograph the ghosts to prove they exist.
+            {t('goal.ghosts')}
           </li>
         </ol>
       </section>
@@ -39,8 +67,16 @@ function TitleScreen() {
         to="/play"
         className="relative mt-4 border-2 border-ink bg-vermilion px-10 py-3 font-display text-lg tracking-[0.2em] text-paper uppercase no-underline shadow-[0.2em_0.2em_0_var(--color-ink)] transition-transform hover:bg-saffron hover:text-ink active:translate-x-[0.15em] active:translate-y-[0.15em] active:shadow-[0.05em_0.05em_0_var(--color-ink)]"
       >
-        Enter
+        {t('title.enter')}
       </Link>
+      <button
+        type="button"
+        className="relative cursor-pointer font-display text-sm tracking-[0.2em] text-paper uppercase underline"
+        onClick={() => setAbout(true)}
+      >
+        {t('about.title')}
+      </button>
+      {about && <AboutOverlay onClose={() => setAbout(false)} />}
     </main>
   )
 }

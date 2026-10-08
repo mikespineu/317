@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react'
+import { useT } from '#/i18n'
 import { useRoomDef } from '../room/RoomContext'
 import { useGame } from '../store'
 import { bindIntroView } from './introView'
@@ -8,6 +9,7 @@ import './intro.css'
 // asking for the first gesture (audio cannot start without one). It never
 // takes input; Intro.tsx drives it through introView.
 export function IntroOverlay() {
+  const t = useT()
   const def = useRoomDef()
   const touch = useGame((s) => s.touch)
   const wash = useRef<HTMLDivElement>(null)
@@ -23,7 +25,7 @@ export function IntroOverlay() {
     <div className="intro" aria-hidden>
       <div ref={wash} className="intro-wash" />
       <p ref={prompt} className="intro-prompt print-ink" hidden>
-        {touch ? 'Tap to begin' : 'Click or press a key to begin'}
+        {t(touch ? 'intro.begin.touch' : 'intro.begin')}
       </p>
     </div>
   )

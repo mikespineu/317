@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import type { PointerEvent as ReactPointerEvent } from 'react'
+import { useT } from '#/i18n'
 import { sfx } from '../audio/sfx'
 import { lockCode, tryCode } from '../interaction/actions'
 import { useHud } from '../interaction/hudState'
@@ -22,6 +23,7 @@ export function PadlockUI() {
 }
 
 function Padlock({ node }: { node: string }) {
+  const t = useT()
   const touch = useGame((s) => s.touch)
   const [digits, setDigits] = useState(
     () => remembered.get(node) ?? lockCode(node).map(() => 0),
@@ -72,7 +74,7 @@ function Padlock({ node }: { node: string }) {
   }, [node])
 
   return (
-    <div className="padlock-overlay" role="dialog" aria-modal="true" aria-label="Combination padlock">
+    <div className="padlock-overlay" role="dialog" aria-modal="true" aria-label={t('lock.padlock')}>
       <div
         className={`padlock${shake ? ' is-wrong' : ''}`}
         onAnimationEnd={(e) => {
@@ -94,18 +96,19 @@ function Padlock({ node }: { node: string }) {
           </div>
           <div className="padlock-actions">
             <button type="button" className="padlock-btn" onClick={close}>
-              Leave
+              {t('lock.leave')}
             </button>
             <button type="button" className="padlock-btn is-primary" onClick={confirm}>
-              Try it
+              {t('lock.try')}
             </button>
           </div>
         </div>
       </div>
       {!touch && (
         <p className="padlock-hint">
-          <kbd>←</kbd> <kbd>→</kbd> wheel &nbsp; <kbd>↑</kbd> <kbd>↓</kbd> turn &nbsp;{' '}
-          <kbd>Enter</kbd> try &nbsp; <kbd>Esc</kbd> leave
+          <kbd>←</kbd> <kbd>→</kbd> {t('lock.hint.wheel')} &nbsp; <kbd>↑</kbd> <kbd>↓</kbd>{' '}
+          {t('lock.hint.turn')} &nbsp; <kbd>Enter</kbd> {t('lock.hint.try')} &nbsp; <kbd>Esc</kbd>{' '}
+          {t('lock.hint.leave')}
         </p>
       )}
     </div>
@@ -123,6 +126,7 @@ function Wheel({
   selected: boolean
   onStep(delta: number): void
 }) {
+  const t = useT()
   const strip = useRef<HTMLDivElement>(null)
   const drag = useRef<{ id: number; y: number } | null>(null)
 
@@ -158,7 +162,7 @@ function Wheel({
       <button
         type="button"
         className="wheel-arrow is-up"
-        aria-label={`Wheel ${index + 1} up`}
+        aria-label={t('lock.wheelUp', { n: index + 1 })}
         onClick={() => onStep(1)}
       />
       <div
@@ -178,7 +182,7 @@ function Wheel({
       <button
         type="button"
         className="wheel-arrow is-down"
-        aria-label={`Wheel ${index + 1} down`}
+        aria-label={t('lock.wheelDown', { n: index + 1 })}
         onClick={() => onStep(-1)}
       />
     </div>

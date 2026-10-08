@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { t, tr } from '#/i18n'
 import { check, checkAny } from '../puzzle/chain'
 import { useRoomDef } from '../room/RoomContext'
 import type { GuideStep, RoomDef } from '../room/roomDef'
@@ -22,22 +23,18 @@ function batteryLabel(touch: boolean): GuideLabel | null | undefined {
   const weak = s.batteryLevel === 'low' || s.batteryLevel === 'empty'
   if (!weak) return undefined
   if (s.swapping) return null
-  const state = s.batteryLevel === 'empty' ? 'Battery dead.' : 'Battery low.'
+  const state = t(s.batteryLevel === 'empty' ? 'battery.dead' : 'battery.low')
   if (s.spares > 0) {
     return {
       id: 'swap',
       urgent: true,
-      text: touch
-        ? `${state} Tap the battery button to charge with your spare.`
-        : `${state} Press **R** to charge it with your spare pack.`,
+      text: t(touch ? 'battery.guide.swap.touch' : 'battery.guide.swap', { state }),
     }
   }
   return {
     id: 'find-pack',
     urgent: true,
-    text: touch
-      ? `${state} Find a battery pack, then tap the battery button.`
-      : `${state} Find a battery pack, then press **R** to charge it.`,
+    text: t(touch ? 'battery.guide.find.touch' : 'battery.guide.find', { state }),
   }
 }
 
@@ -74,7 +71,7 @@ function createGuide(def: RoomDef) {
     const battery = batteryLabel(s.touch)
     if (battery !== undefined) return battery
     if (!due) return null
-    return { id: due.id, text: (s.touch && due.touchText) || due.text }
+    return { id: due.id, text: tr((s.touch && due.touchText) || due.text) }
   }
 }
 

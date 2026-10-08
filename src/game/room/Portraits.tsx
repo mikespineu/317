@@ -154,11 +154,11 @@ function sitters(room: BoundRoom): Sitter[] {
 function checkAgainstDef(found: Sitter[], def: RoomDef) {
   for (const s of found) {
     const plaque = def.interactables.find((i) => i.node === `Portrait_${s.index}_Plaque`)
-    const year = Number(/\b(\d{4})\b/.exec(plaque?.line ?? '')?.[1])
+    const year = Number(/\b(\d{4})\b/.exec(plaque?.line?.en ?? '')?.[1])
     if (s.year === null || year !== s.year)
       console.warn(
         `[portraits] Portrait_${s.index}: birth_year ${s.year} in the .glb, ` +
-          `"${plaque?.line ?? 'no plaque line'}" in the definition`,
+          `"${plaque?.line?.en ?? 'no plaque line'}" in the definition`,
       )
   }
   const lock = def.interactables.flatMap((i) => (i.lock?.type === 'symbol' ? [i.lock] : []))[0]

@@ -1,8 +1,12 @@
 import { HeadContent, Scripts, createRootRoute } from '@tanstack/react-router'
 
+import { useLang } from '#/i18n'
+import { detectLang } from '#/i18n/detect'
 import appCss from '../styles.css?url'
 
 export const Route = createRootRoute({
+  // The request's language, for everything rendered on the server.
+  beforeLoad: () => ({ lang: detectLang() }),
   head: () => ({
     meta: [
       {
@@ -27,8 +31,9 @@ export const Route = createRootRoute({
 })
 
 function RootDocument({ children }: { children: React.ReactNode }) {
+  const lang = useLang()
   return (
-    <html lang="en">
+    <html lang={lang}>
       <head>
         <HeadContent />
       </head>
