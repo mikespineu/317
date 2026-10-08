@@ -1,4 +1,5 @@
 import * as THREE from 'three/webgpu'
+import type { Node } from 'three/webgpu'
 import {
   float,
   fract,
@@ -15,7 +16,9 @@ import {
   vec4,
 } from 'three/tsl'
 import { bloom } from 'three/examples/jsm/tsl/display/BloomNode.js'
+import { getRenderStyle } from '#/lib/renderStyle'
 import { tuning } from '../tuning'
+import { asciiImage, createGlyphAtlas, syncAscii } from './ascii'
 import { quality } from './quality'
 import { indigoShadows, inkColor, inkEdge, nightLift, paperGrain, syncUkiyo, toneBands } from './ukiyo'
 
@@ -76,11 +79,35 @@ export function createPostPipeline(
   const grainStrength = uniform(tuning.grainStrength)
   const gradeStrength = uniform(tuning.gradeStrength)
 
+  // The look is chosen on the title screen and holds for the page's life.
+  const style = getRenderStyle()
+  const atlas = style === 'ascii' ? createGlyphAtlas() : null
+  // The typings name this getTexture; the runtime method is getTextureNode.
+  const bloomTexture = (bloomNode as unknown as { getTextureNode(): THREE.TextureNode }).getTextureNode()
+
   const pipeline = new THREE.RenderPipeline(renderer)
   // We place tone mapping ourselves so vignette and grain come after it.
   pipeline.outputColorTransform = false
 
+  // Same chain as the print, but the picture is redrawn as dithered
+  // characters in place of tone bands, ink and paper.
+  function buildAscii() {
+    const display = (uv: Node<'vec2'>) => {
+      const sample = sceneColor.sample(uv)
+      const hdr = postSettings.bloom ? sample.add(bloomTexture.sample(uv)) : sample
+      return renderOutput(hdr).rgb
+    }
+    let rgb = asciiImage(atlas!, display)
+    if (postSettings.vignette) {
+      const d = screenUV.sub(0.5).length()
+      const v = smoothstep(vignetteStart, float(0.8), d)
+      rgb = rgb.mul(v.mul(vignetteStrength).oneMinus())
+    }
+    return vec4(rgb, 1)
+  }
+
   function buildOutput() {
+    if (style === 'ascii') return buildAscii()
     const hdr = postSettings.bloom ? sceneColor.add(bloomNode) : sceneColor
     // Tone mapping and colour space come from the pipeline's context.
     const display = renderOutput(hdr)
@@ -135,12 +162,14 @@ export function createPostPipeline(
       grainStrength.value = tuning.grainStrength
       gradeStrength.value = tuning.gradeStrength
       syncUkiyo(renderer.getPixelRatio())
+      syncAscii(renderer.getPixelRatio())
       pipeline.render()
     },
     dispose() {
       pipeline.dispose()
       scenePass.dispose()
       bloomNode.dispose()
+      atlas?.dispose()
     },
   }
 }

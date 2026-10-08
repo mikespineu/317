@@ -9,7 +9,9 @@ import { tuning } from '../tuning'
 // The window and the moon behind it are geometry, not balance, so they come
 // from the room definition rather than from tuning.
 type Atmo = RoomDef['atmosphere']
-const PATCH_Y = 0.012 // just above the floor, clear of z-fighting
+// Above the rug's top (0.018 m in the Blender build), so it never sinks into it;
+// the material's polygon offset covers what depth precision loses at range.
+const PATCH_Y = 0.022
 
 // The window's outline projected along the moonlight onto the floor. A
 // shadowless directional light cannot draw this patch by itself.
@@ -66,6 +68,9 @@ function buildAtmosphere(atmo: Atmo) {
   material.blending = THREE.AdditiveBlending
   material.transparent = true
   material.depthWrite = false
+  material.polygonOffset = true
+  material.polygonOffsetFactor = -2
+  material.polygonOffsetUnits = -2
   material.fog = false
   material.side = THREE.DoubleSide
 
