@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
 import { AboutOverlay } from '#/components/AboutOverlay'
 import { tr, useT } from '#/i18n'
-import { imageDataUrl, recordRoom } from '#/lib/progress'
+import { carryBattery, imageDataUrl, recordRoom } from '#/lib/progress'
 import { useRoomDef } from '../room/RoomContext'
+import { runtime } from '../runtime'
 import { useGame } from '../store'
 import type { Photo } from '../store'
 import './complete-card.css'
@@ -13,7 +14,9 @@ function clock(seconds: number) {
 }
 
 // The next room is another page load: a room is fixed for the life of the page.
+// The battery goes along: what is left in the flashlight, and the spare packs.
 function playRoom(id: string) {
+  carryBattery(id, { charge: runtime.battery.charge, spares: useGame.getState().spares })
   window.location.assign(`/play?room=${encodeURIComponent(id)}`)
 }
 
