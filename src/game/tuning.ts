@@ -199,8 +199,16 @@ export const tuning = {
   nightGamma: 0.6, // brightness curve before banding; 1 = off, lower = brighter shadows
   bandCount: 6, // flat tones the brightness is snapped to
   bandStrength: 0.7, // 0 = smooth shading, 1 = fully banded
-  indigoLift: 0.85, // how far blacks are lifted to indigo
-  paperStrength: 0.14, // paper fibre darkening
+  indigoLift: 0.7, // how far blacks are lifted to indigo
+  paperStrength: 0.11, // paper fibre darkening
+  asciiCellWidth: 3, // ASCII style: character cell, CSS px (smaller = more detail)
+  asciiCellHeight: 3,
+  asciiGamma: 0.5, // brightness curve before the glyph is picked; lower = brighter shadows
+  asciiExposure: 1.48, // brightness multiplier before the curve
+  asciiDither: 0.97, // Bayer dither strength; 0 = hard glyph steps
+  asciiColorLevels: 7.71, // posterised levels per colour channel
+  asciiBackground: 1.18, // how much of the cell's colour shows behind the glyph
+  asciiGlyphMin: 1.95, // dimmest the glyph colour gets; raise for clearer text
 
   // audio
   masterVolume: 0.6,
