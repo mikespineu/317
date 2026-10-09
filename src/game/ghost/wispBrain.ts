@@ -1,6 +1,8 @@
-import { Raycaster, Vector3 } from 'three/webgpu'
+import { CatmullRomCurve3, Raycaster, Vector3 } from 'three/webgpu'
 import type { Mesh } from 'three/webgpu'
+import { uvMaskAt } from '../light/uvReveal'
 import type { GhostDef } from '../room/roomDef'
+import { currentRoom } from '../room/rooms'
 import type { WispState } from '../runtime'
 import type { LightMode } from '../store'
 import { tuning } from '../tuning'
@@ -32,6 +34,9 @@ export interface WispBrain {
   clock: number // seconds simulated
   phase: number[] // per-Wisp offsets so two Wisps would not move alike
   zone: GhostDef['zone'] | null // wander box from the definition; null = the room
+  // The Ink Ghost follows a closed route instead of wandering a box, is seen
+  // and slowed by the UV lamp instead of the white light, and never flees.
+  route: { curve: CatmullRomCurve3; points: Vector3[]; t: number; dwell: number } | null
 }
 
 export interface BrainContext {
@@ -76,6 +81,7 @@ export function createBrain(
   spawn: Vector3,
   zone: GhostDef['zone'] | null = null,
   seed = 0,
+  route: readonly Vector3[] | null = null,
 ): WispBrain {
   return {
     state: 'wander',
@@ -94,7 +100,45 @@ export function createBrain(
       (p, i) => p + seed * (1.7 + i * 0.61),
     ),
     zone,
+    route:
+      route && route.length > 2
+        ? {
+            points: route.map((p) => p.clone()),
+            curve: new CatmullRomCurve3(route.map((p) => p.clone()), true, 'centripetal'),
+            t: 0,
+            dwell: 0,
+          }
+        : null,
   }
+}
+
+// Whether a good photograph taken now would dissolve it.
+export function isCatchable(brain: WispBrain) {
+  if (brain.route) return brain.state === 'wander' && brain.exposure >= tuning.inkCatchExposure
+  return brain.state === 'freeze'
+}
+
+// A closed loop through the waypoints at a steady pace, resting at each one
+// (it is handling a book). UV slows it. Parameter t runs 0..1 around the loop
+// with waypoint i at i/n, so the pace is set per segment from its length.
+function followRoute(brain: WispBrain, route: NonNullable<WispBrain['route']>, dt: number) {
+  const n = route.points.length
+  if (route.dwell > 0) {
+    route.dwell -= dt
+    return
+  }
+  const i = Math.floor(route.t * n) % n
+  const length = Math.max(0.1, route.points[i].distanceTo(route.points[(i + 1) % n]))
+  const speed = tuning.inkSpeed * (1 - (1 - tuning.inkSlow) * brain.exposure)
+  route.t += (speed * dt) / (length * n)
+  if (route.t >= 1) route.t -= 1
+  if (Math.floor(route.t * n) !== i) {
+    // Reached the next waypoint: stop on it.
+    route.t = ((i + 1) % n) / n
+    route.dwell = tuning.inkDwell
+  }
+  route.curve.getPoint(route.t, brain.position)
+  brain.position.y += Math.sin(brain.clock * 1.3) * tuning.wispBob
 }
 
 // Called by Wisp.tsx when a good enough photo of the frozen Wisp was taken.
@@ -121,9 +165,10 @@ const _box = { cx: 0, cy: 0, cz: 0, hx: 0, hy: 0, hz: 0 }
 function innerBox(brain: WispBrain) {
   const zone = brain.zone
   if (!zone) {
+    const bounds = currentRoom().bounds
     _box.cx = _box.cz = 0
-    _box.hx = tuning.wispRoomHalfX - tuning.wispMargin
-    _box.hz = tuning.wispRoomHalfZ - tuning.wispMargin
+    _box.hx = (bounds?.halfX ?? tuning.wispRoomHalfX) - tuning.wispMargin
+    _box.hz = (bounds?.halfZ ?? tuning.wispRoomHalfZ) - tuning.wispMargin
     _box.cy = (tuning.wispMinY + tuning.wispMaxY) / 2
     _box.hy = (tuning.wispMaxY - tuning.wispMinY) / 2
     return _box
@@ -155,12 +200,23 @@ export function stepBrain(brain: WispBrain, dt: number, ctx: BrainContext) {
   brain.offset.set(0, 0, 0)
 
   const dissolving = brain.state === 'dissolve'
-  brain.lit = dissolving ? 0 : beamOn(brain.position, ctx.beam, ctx.occluders)
-  const rate = brain.lit > 0 ? tuning.wispExposureRise : -tuning.wispExposureDecay
+  brain.lit = dissolving
+    ? 0
+    : brain.route
+      ? blocked(ctx.beam.origin, brain.position, ctx.occluders)
+        ? 0
+        : uvMaskAt(brain.position)
+      : beamOn(brain.position, ctx.beam, ctx.occluders)
+  const seen = brain.route ? tuning.inkFadeStart : 0
+  const rate = brain.lit > seen ? tuning.wispExposureRise : -tuning.wispExposureDecay
   brain.exposure = Math.min(1, Math.max(0, brain.exposure + rate * dt))
 
   switch (brain.state) {
     case 'wander': {
+      if (brain.route) {
+        followRoute(brain, brain.route, dt)
+        break
+      }
       // The path is a point drifting around the inner box; the Wisp trails it
       // at a capped speed so it also glides back calmly after fleeing.
       brain.path += dt * tuning.wispWanderSpeed

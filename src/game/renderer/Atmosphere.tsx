@@ -23,11 +23,16 @@ function buildPatchGeometry({ window: WINDOW, moon }: Atmo) {
   ]
   const positions: number[] = []
   const uvs: number[] = []
+  // A window in an east or west wall is as wide along Z as one in a north or
+  // south wall is along X.
+  const sideways = WINDOW.facing === 'east' || WINDOW.facing === 'west'
   for (const [cx, cy, u, v] of corners) {
-    const x = WINDOW.x + cx * WINDOW.w
+    const along = cx * WINDOW.w
+    const x = WINDOW.x + (sideways ? 0 : along)
+    const z = WINDOW.z + (sideways ? along : 0)
     const y = WINDOW.y + cy * WINDOW.h
     const t = (PATCH_Y - y) / dir.y
-    positions.push(x + dir.x * t, PATCH_Y, WINDOW.z + dir.z * t)
+    positions.push(x + dir.x * t, PATCH_Y, z + dir.z * t)
     uvs.push(u, v)
   }
   const geometry = new THREE.BufferGeometry()

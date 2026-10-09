@@ -143,7 +143,7 @@ const tuningDefaults: Bag = { ...tuningBag }
 // (uvDrainSeconds is battery, not beam; uvHumVolume is audio).
 const GROUPS: [name: string, match: RegExp][] = [
   ['intro', /^intro/],
-  ['wisp', /^(wisp|ghost|keyDrop|keyGlint)/],
+  ['wisp', /^(wisp|ghost|keyDrop|keyGlint|mimic|ink(Speed|Slow|Dwell|Catch|Fade|Light))/],
   ['camera', /^(photo|camera|aimAssist|shutter)/],
   ['mirror', /^mirror/],
   ['props', /^(throw|prop|hold)/],
@@ -152,7 +152,7 @@ const GROUPS: [name: string, match: RegExp][] = [
   ['atmosphere', /^(moon|ambient|fog|background)/],
   ['battery', /Drain|Charge|^(level|swap|emergency|modeSwitch|lowTick|battery)/],
   ['player', /^(eye|player|walk|pitch|joystick|tap|maxFrame|touch|mouse|look)|Sensitivity$/],
-  ['interaction', /^(reach|drawer|door|padlock|message|complete|highlight|interact|pickup|search|lid|symbolLock)/],
+  ['interaction', /^(reach|drawer|door|padlock|message|complete|highlight|interact|pickup|search|lid|symbolLock|ladder)/],
   [
     'light',
     /^(white|uv|light|candle|shadow|held|flicker|sputter|emptyGlow|lowStrength|strengthCurve|cone|dust|reveal|clue|beam)/,

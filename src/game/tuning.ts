@@ -86,6 +86,7 @@ export const tuning = {
   dustFall: 0.012, // m/s
   revealGlow: 1.6, // emissive boost of the revealed ink, for bloom
   clueMaskThreshold: 0.15,
+  uvInkHoldSeconds: 0.6, // the lamp resting on written ink before its clue is logged
 
   // wisp
   wispFreezeDelay: 0.4,
@@ -110,6 +111,27 @@ export const tuning = {
   wispMaxDrift: 0.9, // m/s cap while wandering
   wispRoomHalfX: 2.0, // room interior half-size, until the room def carries bounds
   wispRoomHalfZ: 2.5,
+  // mimic
+  mimicFreezeDelay: 0.6, // s of white light on the disguised object before it freezes
+  mimicRevealSeconds: 3, // true shape shown
+  mimicUnlitDrain: 4, // the reveal runs out this much faster while the light is off it
+  mimicPopSeconds: 0.25, // disguise out, true shape in
+  mimicTwitchMin: 5, // s between twitches
+  mimicTwitchMax: 8,
+  mimicTwitchSeconds: 0.45,
+  mimicTwitchShake: 0.012, // m
+  mimicTwitchTilt: 0.052, // rad
+  mimicRedisguiseSeconds: 0.4, // gap before it settles on a new spot
+  mimicPity: 0.5, // s added to the next reveal after each one that ended without a good photo
+  mimicPityMax: 2,
+  // ink ghost
+  inkSpeed: 0.3, // m/s along its route
+  inkSlow: 0.25, // speed factor at full UV exposure
+  inkDwell: 1.5, // s paused at each waypoint
+  inkCatchExposure: 0.4, // exposure at which a good photo dissolves it
+  inkFadeStart: 0.02, // uvMask range over which it fades in
+  inkFadeEnd: 0.3,
+  inkLight: 0.25, // scale of its point light, times how visible it is
   // wisp: the sheet
   sheetStiffness: 42, // spring pulling the cloth after the head, 1/s²
   sheetDamping: 0.3, // damping ratio; below 1 the cloth swings past and settles
@@ -232,6 +254,7 @@ export const tuning = {
   searchSeconds: 0.8, // coat pocket rummage
   lidSeconds: 0.9, // chest lid, ease-out
   symbolLockDropSeconds: 0.5,
+  ladderSeconds: 1.1, // the library ladder rolling aside
 
   // mirror clue
   mirrorClueDwell: 1.0, // s the text must stay lit and in the reflection

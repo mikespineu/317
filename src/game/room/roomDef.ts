@@ -33,6 +33,7 @@ export type InteractableType =
   | 'lid'
   | 'locked'
   | 'inspect'
+  | 'read'
 
 export interface InteractableDef {
   node: string
@@ -50,6 +51,14 @@ export interface InteractableDef {
   slideDir?: Vec3 // drawer axis in the node's parent space; default is the node's +Z
   openAngleDeg?: number // door / lid swing, signed
   hingeAxis?: 'x' | 'y' | 'z' // lid hinge; doors always turn about Y
+  note?: string // 'read': key into `notes`, opened when the node is used
+  // Not usable (no prompt, not aimed at) until every token holds: the panel
+  // behind the books that have not been moved yet.
+  availableWhen?: Token | readonly Token[]
+  // Scenery that moves when a door opens (a ladder), with its Collider_ box.
+  // `by` is in the node's parent space.
+  moves?: readonly { node: string; by: Vec3; collider?: string }[]
+  codeNote?: Localized // HUD note once a clue is known and this lock is still shut
   lock?: LockDef
   // 'candle': wick positions in the node's own space, one flame each. Without
   // it there is a single flame on top of the node's bounding box.
@@ -77,9 +86,28 @@ export interface PropDef {
   throwable?: boolean
 }
 
+// One place the Mimic can sit: its marker, the scenery it replaces while it
+// is there, and the identical mesh that stands in for it.
+export interface MimicSpot {
+  spawn: string
+  decoy: string
+  disguise: string
+}
+
+// Ink that exists only inside the UV cone. Planes are placed just off a
+// surface in Blender; the art is drawn by `art` (or read from a PNG).
+export interface UvTextDef {
+  node: string
+  art: 'message' | 'hand' | 'digit'
+  text?: Localized // 'message'
+  digit?: string // 'digit'
+  flip?: boolean // 'hand': mirror the picture
+  gives?: Token // clue logged once the ink has been lit for a moment
+}
+
 export interface GhostDef {
   id: string
-  type: 'wisp' | 'ink'
+  type: 'wisp' | 'ink' | 'mimic'
   mesh: string
   spawn: string
   baseScore: number
@@ -88,7 +116,9 @@ export interface GhostDef {
   enabled?: boolean
   drops?: { pickup: string; sets: Token } // falls from where the ghost dissolves
   zone?: { min: Vec3; max: Vec3 } // wander box; the room bounds when absent
-  whisper?: 'wispWhisper' | 'wispWhisperKey' // which whisper loop it uses
+  whisper?: 'wispWhisper' | 'wispWhisperKey' | 'penScratch' // which loop it uses
+  spots?: readonly MimicSpot[] // 'mimic': where it can sit; `spawn` is the first
+  route?: readonly string[] // 'ink': Path_ empties, a closed loop
 }
 
 export interface NoteDef {
@@ -130,7 +160,12 @@ export interface RoomDef {
   scene: string
   spawn: string
   spawnYawDeg?: number // 0 looks north (-Z)
-  lights?: { uv: boolean } // uv: false disables the UV lamp in this room
+  // uv: false disables the UV lamp in this room, 'lamp' until item:uv-lamp is picked up
+  lights?: { uv: boolean | 'lamp' }
+  startsWithLight?: boolean // the flashlight is already in hand (it came from the previous room)
+  // Interior half-sizes and ceiling, for prop physics and wandering ghosts.
+  // Without it the study's numbers from tuning.ts apply.
+  bounds?: { halfX: number; halfZ: number; ceiling: number }
   startCharge?: number // 0..1; tuning.startCharge when absent
   parSeconds?: number // third star
 
@@ -142,10 +177,10 @@ export interface RoomDef {
 
   atmosphere: {
     // The window the moon shines through; `facing` is the wall it is in.
-    window: { x: number; y: number; z: number; w: number; h: number; facing: 'north' | 'south' }
+    window: { x: number; y: number; z: number; w: number; h: number; facing: 'north' | 'south' | 'east' | 'west' }
     moon: Vec3 // shines toward the origin
     fogScale?: number // multiplies tuning.fogDensity; deeper rooms use less
-    roomTone?: 'study' | 'hall' // idle air and creaks (audio/loops.ts); 'study' when absent
+    roomTone?: 'study' | 'hall' | 'library' // idle air and creaks (audio/loops.ts); 'study' when absent
   }
 
   interactables: readonly InteractableDef[]
@@ -161,6 +196,7 @@ export interface RoomDef {
     clue?: { node: string; text?: Localized; gives: Token }
   }
 
+  uvText?: readonly UvTextDef[]
   notes?: Readonly<Record<string, NoteDef>>
   // Running dry with no spares brings this pickup back, at `spawn` when given.
   emergencyPack?: { pickup: string; spawn?: string }
@@ -177,5 +213,9 @@ export interface RoomDef {
     next?: Localized
     stars?: boolean
   }
-  secrets?: { total: number; note?: Localized } // note: why they cannot be found yet
+  // total: how many there are; found: a token each, counted when it holds;
+  // note: why they cannot be found yet
+  secrets?: { total: number; found?: readonly Token[]; note?: Localized }
+  // Hints on the complete card at other rooms, shown when `when` holds.
+  leads?: readonly { when: Token; text: Localized }[]
 }

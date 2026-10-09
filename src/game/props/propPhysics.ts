@@ -2,6 +2,7 @@ import { Box3, Euler, Group, Quaternion, Vector3 } from 'three/webgpu'
 import type { Camera } from 'three/webgpu'
 import { sfx } from '../audio/sfx'
 import type { BoundRoom } from '../room/bindNodes'
+import { currentRoom } from '../room/rooms'
 import { runtime } from '../runtime'
 import type { Aabb } from '../runtime'
 import { useGame } from '../store'
@@ -135,13 +136,15 @@ function resolve(pos: Vector3, r: number, onHit?: (n: Vector3) => void) {
     normal.copy(UP)
     hit()
   }
-  if (pos.y > tuning.propCeiling - r) {
-    pos.y = tuning.propCeiling - r
+  const bounds = currentRoom().bounds
+  const ceiling = bounds?.ceiling ?? tuning.propCeiling
+  if (pos.y > ceiling - r) {
+    pos.y = ceiling - r
     normal.set(0, -1, 0)
     hit()
   }
-  const hx = tuning.wispRoomHalfX - r
-  const hz = tuning.wispRoomHalfZ - r
+  const hx = (bounds?.halfX ?? tuning.wispRoomHalfX) - r
+  const hz = (bounds?.halfZ ?? tuning.wispRoomHalfZ) - r
   if (pos.x < -hx || pos.x > hx) {
     normal.set(pos.x < 0 ? 1 : -1, 0, 0)
     pos.x = Math.min(Math.max(pos.x, -hx), hx)
@@ -159,6 +162,8 @@ export function grabProp(name: string) {
   const body = bodyFor(name)
   if (!body || useGame.getState().held) return
   body.state = 'held'
+  // Other things can wait on a prop having been moved (the panel behind the books).
+  useGame.getState().setFlag(`moved:${name}`)
   body.vel.set(0, 0, 0)
   body.spin.set(0, 0, 0)
   body.still = 0

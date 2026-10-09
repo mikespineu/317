@@ -44,6 +44,7 @@ export function levelOf(charge: number): BatteryLevel {
 export interface GameState {
   // light
   hasLight: boolean // the flashlight has been picked up
+  hasUv: boolean // the UV lamp is available: found, or the room has it from the start
   lightOn: boolean
   lightMode: LightMode
   switching: boolean // short delay while swapping modes, light is off
@@ -118,8 +119,9 @@ const initialLevelState = (def: RoomDef) => ({
   completedAt: null as number | null,
   notesRead: [] as string[],
   openNote: null as string | null,
-  hasLight: false,
-  lightOn: false,
+  hasLight: def.startsWithLight === true,
+  hasUv: def.lights?.uv === undefined || def.lights.uv === true,
+  lightOn: def.startsWithLight === true,
   lightMode: 'white' as LightMode,
   switching: false,
   batteryLevel: levelOf(chargeOf(def)),
@@ -152,9 +154,8 @@ export const useGame = create<GameState>((set, get) => ({
   },
 
   toggleMode: () => {
-    // A room without the UV lamp: the switch does nothing.
-    if (currentRoom().lights?.uv === false) return
-    if (!get().hasLight || get().switching) return
+    // Before the lamp is found (or in a room without one) the switch does nothing.
+    if (!get().hasLight || !get().hasUv || get().switching) return
     const { epoch } = get()
     set({ switching: true })
     setTimeout(() => {
@@ -184,6 +185,7 @@ export const useGame = create<GameState>((set, get) => ({
   addItem: (id) =>
     set((s) => {
       if (id === 'flashlight') return { hasLight: true, lightOn: true }
+      if (id === 'uv-lamp') return { hasUv: true }
       if (id === 'battery') return { spares: s.spares + 1 }
       return { items: { ...s.items, [id]: (s.items[id] ?? 0) + 1 } }
     }),

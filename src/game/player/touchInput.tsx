@@ -2,7 +2,6 @@ import { useEffect, useRef } from 'react'
 import type { PointerEvent as ReactPointerEvent, ReactNode, RefObject } from 'react'
 import { useT } from '#/i18n'
 import { emit } from '../events'
-import { useRoomDef } from '../room/RoomContext'
 import { runtime } from '../runtime'
 import { useGame } from '../store'
 import { setTouchPaused } from './desktopInput'
@@ -197,7 +196,7 @@ function Buttons() {
   const spares = useGame((s) => s.spares)
   const raised = useGame((s) => s.cameraRaised)
   // A room without the UV lamp has no switch for it.
-  const uv = useRoomDef().lights?.uv !== false
+  const uv = useGame((s) => s.hasUv)
   const game = useGame.getState
 
   return (

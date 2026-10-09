@@ -32,6 +32,12 @@ export type SfxName =
   | 'chestClunk'
   | 'lidCreak'
   | 'mirrorChime'
+  | 'mimicScrape'
+  | 'mimicReveal'
+  | 'pageRustle'
+  | 'bookPull'
+  | 'ladderRoll'
+  | 'lampOn'
 
 export type LoopName =
   | 'roomTone'
@@ -40,6 +46,7 @@ export type LoopName =
   | 'wispWhisperKey' // the key Wisp: louder and slightly lower
   | 'clockTick'
   | 'wind'
+  | 'penScratch' // the Ink Ghost: a quill, closer as it nears
 
 // A short filtered-noise tick: the basis of every switch and latch here.
 function click(a: Audio, at: number, hz: number, gain: number, dur = 0.018) {
@@ -263,6 +270,50 @@ const voices: Record<SfxName, (a: Audio) => void> = {
     creak(a, 0.15, 0.6, 0.025, 96)
     noise(a, { filter: 'lowpass', from: 260, dur: 0.8, gain: 0.04, attack: 0.25 })
     thud(a, 0.86, 110, 0.09, 0.1)
+  },
+
+  // Something small and hard dragged a hand's width over a table, twice.
+  mimicScrape(a) {
+    noise(a, { filter: 'bandpass', from: 1500, to: 900, q: 1.2, dur: 0.18, gain: 0.1, attack: 0.02 })
+    noise(a, { filter: 'bandpass', from: 1300, to: 800, q: 1.2, at: 0.22, dur: 0.15, gain: 0.08, attack: 0.02 })
+    thud(a, 0.2, 140, 0.05, 0.05)
+  },
+
+  // The disguise gives way: pages riffling, then something wet and low.
+  mimicReveal(a) {
+    for (let i = 0; i < 7; i++)
+      click(a, i * 0.03, 3600 + Math.random() * 1800, 0.07, 0.012)
+    noise(a, { filter: 'lowpass', from: 420, to: 160, at: 0.05, dur: 0.5, gain: 0.12, attack: 0.04 })
+    tone(a, { from: 120, to: 70, at: 0.05, dur: 0.45, gain: 0.08, attack: 0.02 })
+  },
+
+  // A heavy ledger page turned: broad paper, one soft settle.
+  pageRustle(a) {
+    noise(a, { filter: 'bandpass', from: 2600, to: 4200, q: 0.7, dur: 0.22, gain: 0.07, attack: 0.04 })
+    noise(a, { filter: 'bandpass', from: 3800, to: 2400, q: 0.7, at: 0.2, dur: 0.2, gain: 0.05, attack: 0.04 })
+    thud(a, 0.3, 160, 0.03, 0.06)
+  },
+
+  // A folio slid off its shelf: leather on wood.
+  bookPull(a) {
+    noise(a, { filter: 'bandpass', from: 700, to: 450, q: 0.9, dur: 0.22, gain: 0.08, attack: 0.04 })
+    thud(a, 0.2, 180, 0.07, 0.07)
+  },
+
+  // Brass wheels on a rail, a long way: a low roll with a click at the stop.
+  ladderRoll(a) {
+    noise(a, { filter: 'lowpass', from: 320, to: 220, dur: 1.1, gain: 0.1, attack: 0.15 })
+    noise(a, { filter: 'bandpass', from: 2200, q: 3, dur: 1.0, gain: 0.025, attack: 0.2 })
+    tone(a, { from: 70, to: 60, dur: 1.0, gain: 0.05, attack: 0.1 })
+    click(a, 1.1, 1400, 0.1, 0.03)
+    thud(a, 1.1, 120, 0.1, 0.1)
+  },
+
+  // Cold glass catches: a short rising shimmer.
+  lampOn(a) {
+    tone(a, { from: 520, to: 1040, dur: 0.35, gain: 0.04, attack: 0.02 })
+    tone(a, { from: 1560, to: 2080, at: 0.05, dur: 0.3, gain: 0.02, attack: 0.02 })
+    click(a, 0, 2400, 0.08, 0.02)
   },
 
   // Glass, not metal: thin partials that swell in rather than strike.

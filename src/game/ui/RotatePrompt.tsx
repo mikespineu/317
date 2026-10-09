@@ -8,7 +8,6 @@ import {
   setTouchPaused,
   setPortrait,
 } from '../player/desktopInput'
-import { useRoomDef } from '../room/RoomContext'
 import { useGame } from '../store'
 import './rotate-prompt.css'
 
@@ -40,7 +39,7 @@ export function RotatePrompt() {
   const [started, setStarted] = useState(false)
   const [about, setAbout] = useState(false)
   // A room without the UV lamp does not list its key.
-  const uv = useRoomDef().lights?.uv !== false
+  const uv = useGame((s) => s.hasUv)
 
   useEffect(() => {
     const game = root.current?.parentElement

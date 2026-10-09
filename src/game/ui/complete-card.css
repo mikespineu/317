@@ -205,3 +205,11 @@
   border: 0;
   cursor: pointer;
 }
+
+/* Hints the room gave to another room: a quiet line, in the print's italics. */
+.complete-leads {
+  margin: 0.4rem 0 0;
+  padding: 0;
+  list-style: none;
+  font-style: italic;
+}

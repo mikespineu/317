@@ -303,6 +303,7 @@ export const level1 = {
     { label: 'library key', take: 'Pickup_Library_Key' },
   ],
   exit: { node: 'Interact_Library_Door', requires: 'item:library-key' },
+  nextRoom: 'library',
   complete: {
     eyebrow: { en: '3.17 · the entrance hall', pl: '3.17 · hol wejściowy' },
     title: { en: 'Room complete', pl: 'Pokój ukończony' },

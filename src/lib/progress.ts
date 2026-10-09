@@ -16,6 +16,7 @@ export interface RoomProgress {
   stars: number | null // best count; null for a room that awards none
   score: number // the best photographs' scores, added up
   photos: SavedPhoto[] // the best one per ghost, over every run
+  leads: string[] // tokens of the hints this room has given to other rooms, over every run
 }
 
 export interface Progress {
@@ -27,6 +28,7 @@ export interface RoomRun {
   seconds: number | null
   stars: number | null
   photos: SavedPhoto[]
+  leads?: string[]
 }
 
 export function loadProgress(): Progress {
@@ -67,6 +69,7 @@ export function recordRoom(roomId: string, run: RoomRun): RoomProgress {
     stars: most(before?.stars ?? null, run.stars),
     score: photos.reduce((sum, p) => sum + p.score, 0),
     photos,
+    leads: [...new Set([...(before?.leads ?? []), ...(run.leads ?? [])])],
   }
   progress.rooms[roomId] = room
   try {

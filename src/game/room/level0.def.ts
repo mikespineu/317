@@ -20,6 +20,10 @@ export const level0 = {
       slide: 0.35,
       // The code is a placeholder; any short code works.
       lock: { type: 'code', code: '3-1-7', mesh: 'Desk_Padlock', sets: 'flag:drawer-unlocked' },
+      codeNote: {
+        en: 'Code found. Try the desk drawer.',
+        pl: 'Szyfr znaleziony. Sprawdź szufladę biurka.',
+      },
       sets: 'flag:drawer-open',
     },
     { node: 'Interact_Door', type: 'door', requires: 'item:key', openAngleDeg: 95 },

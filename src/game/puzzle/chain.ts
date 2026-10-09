@@ -7,7 +7,7 @@ import { useGame } from '../store'
 // Store keys carry no prefix.
 //
 // 'item:', 'flag:' and 'clue:' can be checked and granted. The rest are
-// read-only conditions for the guide: 'light:held', 'uv:on', 'camera:raised',
+// read-only conditions for the guide: 'light:held', 'uv:held', 'uv:on', 'camera:raised',
 // 'photo:<ghost id>', 'picked:<Pickup_ node>', 'note:<id>' (read),
 // 'ghost:<id>:<state>' (the live state, e.g. 'ghost:wisp-key:freeze').
 export type Token = string
@@ -38,7 +38,7 @@ function checkOne(token: Token): boolean {
     case 'light':
       return s.hasLight
     case 'uv':
-      return s.lightOn && s.lightMode === 'uv'
+      return id === 'held' ? s.hasUv : s.lightOn && s.lightMode === 'uv'
     case 'camera':
       return s.cameraRaised
     case 'photo':

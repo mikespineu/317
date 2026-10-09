@@ -26,6 +26,7 @@ import {
   vec3,
   vec4,
 } from 'three/tsl'
+import { uvMask } from '../light/uvReveal'
 import { tuning } from '../tuning'
 
 type V3 = Node<'vec3'>
@@ -42,7 +43,8 @@ const TAUT = 0.09
 // Step used to find the surface normal after the cloth has been shaped.
 const EPS = 0.003
 
-export function createWispMaterial() {
+// `uvOnly` is the Ink Ghost: it exists only inside the UV cone, fading in at its edge.
+export function createWispMaterial(options: { uvOnly?: boolean } = {}) {
   const uniforms = {
     time: uniform(0), // own clock, so the cloth stops with the game
     exposure: uniform(0),
@@ -197,7 +199,8 @@ export function createWispMaterial() {
   )
   // Slightly sheer toward the hem; the eyes are solid dark.
   const sheer = mix(uniforms.opacity, uniforms.opacity.mul(0.7), w.mul(w).mul(w))
-  material.opacityNode = alive.mul(mix(sheer, float(1), eye))
+  const seen = options.uvOnly ? smoothstep(tuning.inkFadeStart, tuning.inkFadeEnd, uvMask()) : float(1)
+  material.opacityNode = alive.mul(mix(sheer, float(1), eye)).mul(seen)
   material.fog = false
 
   return { material, uniforms }

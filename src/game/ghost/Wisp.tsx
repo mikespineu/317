@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react'
 import { useFrame, useThree } from '@react-three/fiber'
-import { Group, PointLight, Vector3 } from 'three/webgpu'
+import { Group, MathUtils, PointLight, Vector3 } from 'three/webgpu'
 import { sfx } from '../audio/sfx'
 import { on } from '../events'
 import { check } from '../puzzle/chain'
@@ -14,7 +14,7 @@ import { createDrop, disposeDrop, stepDrop } from './dropItem'
 import type { Drop } from './dropItem'
 import { createCloth, stepCloth } from './sheetCloth'
 import type { SheetCloth } from './sheetCloth'
-import { createBrain, startDissolve, stepBrain } from './wispBrain'
+import { createBrain, isCatchable, startDissolve, stepBrain } from './wispBrain'
 import type { WispBrain } from './wispBrain'
 import { createWispMaterial } from './wispMaterial'
 import type { WispMaterial } from './wispMaterial'
@@ -49,7 +49,8 @@ export function Wisp({ ghost: def, seed = 0 }: { ghost: GhostDef; seed?: number 
     const spawn = room.spawns.get(def.spawn)
     if (!mesh || !spawn) return
 
-    const look = createWispMaterial()
+    const ink = def.type === 'ink'
+    const look = createWispMaterial({ uvOnly: ink })
     const original = mesh.material
     mesh.material = look.material
     mesh.position.set(0, 0, 0) // the group carries the position
@@ -68,7 +69,13 @@ export function Wisp({ ghost: def, seed = 0 }: { ghost: GhostDef; seed?: number 
     group.position.copy(spawn)
     scene.add(group)
 
-    const brain = createBrain(spawn, def.zone ?? null, seed)
+    const route = ink
+      ? (def.route ?? []).flatMap((name) => {
+          const at = room.spawns.get(name)
+          return at ? [at] : []
+        })
+      : null
+    const brain = createBrain(spawn, def.zone ?? null, seed, route)
     const w: Live = {
       brain,
       cloth: createCloth(spawn),
@@ -88,7 +95,7 @@ export function Wisp({ ghost: def, seed = 0 }: { ghost: GhostDef; seed?: number 
 
     const off = on('photo', ({ ghostId, quality }) => {
       if (ghostId !== def.id || quality === null) return
-      if (brain.state !== 'freeze' || quality < tuning.photoDissolveQuality) return
+      if (!isCatchable(brain) || quality < tuning.photoDissolveQuality) return
       startDissolve(brain)
       sfx.play('wispDissolve')
     })
@@ -165,7 +172,11 @@ export function Wisp({ ghost: def, seed = 0 }: { ghost: GhostDef; seed?: number 
     u.dissolve.value = brain.dissolve
     u.glow.value = tuning.wispGlow
     u.exposureGlow.value = tuning.wispExposureGlow
-    light.intensity = tuning.wispLight * (1 + brain.exposure) * (1 - brain.dissolve)
+    // The Ink Ghost lights its surroundings only as far as it can be seen.
+    const seen = brain.route
+      ? MathUtils.smoothstep(brain.lit, tuning.inkFadeStart, tuning.inkFadeEnd) * tuning.inkLight
+      : 1
+    light.intensity = tuning.wispLight * (1 + brain.exposure) * (1 - brain.dissolve) * seen
 
     const shared = runtime.ghosts.get(def.id)
     if (shared) {
@@ -173,6 +184,8 @@ export function Wisp({ ghost: def, seed = 0 }: { ghost: GhostDef; seed?: number 
       shared.speed = brain.speed
       shared.exposure = brain.exposure
       shared.state = brain.state
+      // A shot of the Ink Ghost counts while any UV is on it.
+      shared.photographable = brain.route ? brain.lit > tuning.inkFadeStart : true
     }
 
     // stepBrain may have finished the dissolve.
