@@ -1,6 +1,7 @@
 import { Frustum, Matrix4, Vector3 } from 'three/webgpu'
 import type { Mesh, PerspectiveCamera } from 'three/webgpu'
 import { beamOn, blocked } from '../ghost/wispBrain'
+import { uvMaskAt } from '../light/uvReveal'
 import type { GhostDef } from '../room/roomDef'
 import { liveGhosts, runtime } from '../runtime'
 import type { GhostRuntime } from '../runtime'
@@ -39,7 +40,7 @@ export function scorePhoto(
   for (const wisp of liveGhosts()) {
     const def = ghosts.find((g) => g.id === wisp.id)
     if (!def) continue
-    const score = scoreGhost(camera, wisp, def.baseScore, occluders)
+    const score = scoreGhost(camera, wisp, def.baseScore, occluders, def.type === 'ink')
     if (score && (!best || score.quality > best.quality)) best = score
   }
   return best
@@ -50,11 +51,13 @@ function scoreGhost(
   wisp: GhostRuntime,
   baseScore: number,
   occluders: Mesh[],
+  uv: boolean,
 ): PhotoScore | null {
   if (!_frustum.containsPoint(wisp.position)) return null
   if (blocked(_eye, wisp.position, occluders)) return null
 
-  const lit = clamp01(beamOn(wisp.position, runtime.beam, occluders))
+  // The Ink Ghost is lit by the UV lamp; every other ghost by the white beam.
+  const lit = clamp01(uv ? uvMaskAt(wisp.position) : beamOn(wisp.position, runtime.beam, occluders))
 
   _v.copy(wisp.position).project(camera)
   const framed = 1 - clamp01(Math.hypot(_v.x, _v.y) / tuning.photoFramedRadius)

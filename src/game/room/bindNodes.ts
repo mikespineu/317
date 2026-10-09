@@ -19,12 +19,14 @@ export interface BoundRoom {
   spawns: Map<string, Vector3> // Spawn_* world positions
   mirror: Mesh | null
   mirrorOnly: Mesh[] // MirrorOnly_*: drawn only into the mirror's reflection
+  uvOnly: Mesh[] // UVOnly_*: drawn only inside the UV cone, by UvInk
   ghosts: Map<string, Mesh> // ghost meshes by node name, taken out of the scene
 }
 
 // Floor and ceiling would cover the whole room on the XZ plane.
 const SKIP_XZ = new Set(['Collider_Floor', 'Collider_Ceiling'])
 export const MIRROR_ONLY = 'MirrorOnly_'
+export const UV_ONLY = 'UVOnly_'
 const NOT_SOLID = new Set(['Window_Glass'])
 
 // Every node name the definition mentions.
@@ -43,9 +45,18 @@ export function requiredNodes(def: RoomDef) {
   }
   for (const p of def.pickups) names.add(p.node)
   for (const p of def.props) names.add(p.node)
+  for (const u of def.uvText ?? []) names.add(u.node)
+  for (const i of def.interactables) {
+    for (const m of i.moves ?? []) {
+      names.add(m.node)
+      if (m.collider) names.add(m.collider)
+    }
+  }
   for (const g of def.ghosts) {
     names.add(g.mesh).add(g.spawn)
     if (g.drops) names.add(g.drops.pickup)
+    for (const spot of g.spots ?? []) names.add(spot.spawn).add(spot.decoy).add(spot.disguise)
+    for (const path of g.route ?? []) names.add(path)
   }
   if (def.emergencyPack) {
     names.add(def.emergencyPack.pickup)
@@ -72,6 +83,7 @@ export function bindNodes(scene: Object3D, def: RoomDef): BoundRoom {
     spawns: new Map(),
     mirror: null,
     mirrorOnly: [],
+    uvOnly: [],
     ghosts: new Map(),
   }
   const ghostNames = new Set<string>(def.ghosts.map((g) => g.mesh))
@@ -102,7 +114,7 @@ export function bindNodes(scene: Object3D, def: RoomDef): BoundRoom {
       detach.push(node)
       return
     }
-    if (name.startsWith('Spawn_')) {
+    if (name.startsWith('Spawn_') || name.startsWith('Path_')) {
       room.spawns.set(name, node.getWorldPosition(new Vector3()))
       return
     }
@@ -130,6 +142,14 @@ export function bindNodes(scene: Object3D, def: RoomDef): BoundRoom {
     if (name.startsWith(MIRROR_ONLY)) {
       mesh.visible = false
       room.mirrorOnly.push(mesh)
+      return
+    }
+    // Ink is a decal: no shadow, no ray, and nothing hides behind it.
+    if (name.startsWith(UV_ONLY)) {
+      mesh.castShadow = false
+      mesh.receiveShadow = false
+      mesh.raycast = () => {}
+      room.uvOnly.push(mesh)
       return
     }
     mesh.castShadow = true
@@ -162,6 +182,7 @@ export function bindNodes(scene: Object3D, def: RoomDef): BoundRoom {
       spawns: [...room.spawns.keys()],
       mirror: room.mirror?.name ?? null,
       mirrorOnly: room.mirrorOnly.map((m) => m.name),
+      uvOnly: room.uvOnly.map((m) => m.name),
       ghosts: [...room.ghosts.keys()],
     })
   }

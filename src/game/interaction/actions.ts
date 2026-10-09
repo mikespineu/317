@@ -78,7 +78,11 @@ export function promptFor(node: string | null): Prompt | null {
   if (prop) return { label: t('prompt.grab', { prop: tr(prop.label) }), usable: true }
   const def = findInteractable(node)
   if (!def) return null
+  // Something in the way (the books in front of the panel): nothing to do yet.
+  if (def.availableWhen && !check(def.availableWhen)) return null
   switch (def.type) {
+    case 'read':
+      return { label: t('prompt.read', { name: nameOf(def) }), usable: true }
     case 'drawer':
       if (def.lock && !check(def.lock.sets)) return { label: t('prompt.drawer.unlock'), usable: true }
       return check(def.sets) ? null : { label: t('prompt.drawer.open'), usable: true }
@@ -124,8 +128,8 @@ export function heldPrompt(node: string): Prompt {
 // It never prints the code itself.
 export function clueNote(): string | null {
   if (useGame.getState().clues.length === 0) return null
-  const locked = interactables.some((i) => i.lock?.type === 'code' && !check(i.lock.sets))
-  return locked ? t('hud.codeFound') : null
+  const shut = interactables.find((i) => i.codeNote && i.lock?.type === 'code' && !check(i.lock.sets))
+  return shut?.codeNote ? tr(shut.codeNote) : null
 }
 
 // Pickups show iff they were not taken and their condition holds. Runs on
@@ -178,6 +182,12 @@ export function interactWith(node: string) {
   else if (def.type === 'door') operateDoor(def)
   else if (def.type === 'lid') operateLid(def)
   else if (def.type === 'search') startSearch(def)
+  else if (def.type === 'read') {
+    if (def.note) {
+      sfx.play('pageRustle')
+      openNote(def.note)
+    }
+  }
   else if (def.type === 'candle') toggleCandle()
   else if (def.type === 'locked') {
     sfx.play('locked')
@@ -268,6 +278,7 @@ function operateDoor(def: InteractableDef) {
   apply(openedFlag(def.node))
   apply(def.sets)
   sfx.play('doorCreak')
+  runMoves(def)
   // The room's clock stops as the exit gives, not when the card appears.
   const isExit = def.node === exit.node
   if (isExit) useGame.getState().markCompleted()
@@ -295,6 +306,35 @@ function operateDoor(def: InteractableDef) {
       )
     },
   )
+}
+
+// Scenery that gets out of the way when a door opens (the ladder). Its
+// collider box goes with it, so the way is clear as it looks.
+function runMoves(def: InteractableDef) {
+  for (const move of def.moves ?? []) {
+    const node = room?.nodes.get(move.node)
+    if (!node) continue
+    const from = node.position.clone()
+    const by = new Vector3(...move.by)
+    const box = move.collider ? runtime.colliders.find((c) => c.name === move.collider) : undefined
+    const base = box ? { ...box } : null
+    sfx.play('ladderRoll')
+    tween(
+      tuning.ladderSeconds,
+      (k) => {
+        node.position.copy(from).addScaledVector(by, k)
+        if (!box || !base) return
+        box.minX = base.minX + by.x * k
+        box.maxX = base.maxX + by.x * k
+        box.minY = base.minY + by.y * k
+        box.maxY = base.maxY + by.y * k
+        box.minZ = base.minZ + by.z * k
+        box.maxZ = base.maxZ + by.z * k
+      },
+      undefined,
+      easeOut,
+    )
+  }
 }
 
 // A lid is a door on another hinge. Its angle is used as given: about X, a
@@ -377,6 +417,14 @@ export function tryCode(node: string, digits: readonly number[]): boolean {
   showMessage(t('msg.padlockOpen'))
 
   const mesh = room?.nodes.get(lock.mesh)
+  // A lid opens by itself once its lock lets go, as the chest does; a drawer is
+  // left for the player to open. The lock falls through whatever is under it.
+  if (def?.type === 'lid') {
+    const open = () => operateLid(def)
+    if (mesh) dropAndFade(mesh, open)
+    else open()
+    return true
+  }
   if (mesh) {
     const fromY = mesh.position.y
     const fromX = mesh.rotation.x

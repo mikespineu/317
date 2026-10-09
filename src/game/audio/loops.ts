@@ -31,6 +31,28 @@ function inHall() {
   return currentRoom().atmosphere.roomTone === 'hall'
 }
 
+// Dry and still: paper soaks the air up. A low, close hush, and a trace of
+// something papery high up that shifts now and then, like pages settling.
+function libraryTone(a: Audio, out: GainNode) {
+  const lp = a.ctx.createBiquadFilter()
+  lp.type = 'lowpass'
+  lp.frequency.value = 150
+  lp.Q.value = 0.3
+  const body = a.ctx.createGain()
+  body.gain.value = 0.15
+  lfo(a, 0.06, 0.04, body.gain)
+  noiseSource(a).connect(lp).connect(body).connect(out)
+  const papery = a.ctx.createBiquadFilter()
+  papery.type = 'bandpass'
+  papery.frequency.value = 3200
+  papery.Q.value = 0.9
+  lfo(a, 0.043, 700, papery.frequency)
+  const rustle = a.ctx.createGain()
+  rustle.gain.value = 0.006
+  lfo(a, 0.09, 0.005, rustle.gain)
+  noiseSource(a).connect(papery).connect(rustle).connect(out)
+}
+
 // A bigger, emptier volume than the study: the air sits lower, and there is
 // a standing note under it, the way a stairwell hums.
 function hallTone(a: Audio, out: GainNode) {
@@ -89,6 +111,7 @@ const builders: Record<LoopName, (a: Audio, out: GainNode) => void> = {
   // Dark air: low-passed noise that breathes very slowly.
   roomTone(a, out) {
     if (inHall()) return hallTone(a, out)
+    if (currentRoom().atmosphere.roomTone === 'library') return libraryTone(a, out)
     const lp = a.ctx.createBiquadFilter()
     lp.type = 'lowpass'
     lp.frequency.value = 170
@@ -185,6 +208,27 @@ const builders: Record<LoopName, (a: Audio, out: GainNode) => void> = {
     body.connect(out)
   },
 
+  // A quill on rough paper: short dry scratches that come and go.
+  penScratch(a, out) {
+    const src = noiseSource(a)
+    const bp = a.ctx.createBiquadFilter()
+    bp.type = 'bandpass'
+    bp.frequency.value = 4200
+    bp.Q.value = 1.6
+    lfo(a, 0.9, 900, bp.frequency)
+    const body = a.ctx.createGain()
+    body.gain.value = 0.04
+    lfo(a, 5.3, 0.04, body.gain)
+    lfo(a, 1.9, 0.035, body.gain)
+    src.connect(bp).connect(body).connect(out)
+    const lp = a.ctx.createBiquadFilter()
+    lp.type = 'lowpass'
+    lp.frequency.value = 900
+    const low = a.ctx.createGain()
+    low.gain.value = 0.015
+    noiseSource(a).connect(lp).connect(low).connect(out)
+  },
+
   // A long-case clock at one beat a second, the tock a third lower.
   clockTick(a, out) {
     const rate = a.ctx.sampleRate
@@ -239,6 +283,7 @@ function volumeOf(name: LoopName) {
   if (name === 'uvHum') return tuning.uvHumVolume
   if (name === 'clockTick') return tuning.clockTickVolume
   if (name === 'wind') return tuning.windVolume
+  if (name === 'penScratch') return tuning.whisperVolume
   if (name === 'wispWhisperKey') return tuning.whisperVolume * tuning.keyWhisperBoost
   return tuning.whisperVolume
 }
@@ -257,6 +302,7 @@ const loops: Record<LoopName, Loop> = {
   wispWhisperKey: { wanted: 0, applied: -1, out: null },
   clockTick: { wanted: 0, applied: -1, out: null },
   wind: { wanted: 0, applied: -1, out: null },
+  penScratch: { wanted: 0, applied: -1, out: null },
 }
 
 function apply(a: Audio, name: LoopName) {

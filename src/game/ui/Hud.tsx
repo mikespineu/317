@@ -99,7 +99,7 @@ const CONTROLS: [key: string, action: Key, needsLight: boolean][] = [
 // is the joystick and the buttons carry their own labels.
 function Controls({ hasLight }: { hasLight: boolean }) {
   const t = useT()
-  const uv = useRoomDef().lights?.uv !== false
+  const uv = useGame((s) => s.hasUv)
   const shown = CONTROLS.filter(
     ([key, , needsLight]) => (hasLight || !needsLight) && (uv || key !== 'Q'),
   )

@@ -17,7 +17,8 @@ export interface Aabb {
   maxY: number
 }
 
-export type WispState = 'wander' | 'freeze' | 'flee' | 'dissolve' | 'gone'
+// 'disguised' is the Mimic sitting as an ordinary object; its reveal is 'freeze'.
+export type WispState = 'wander' | 'freeze' | 'flee' | 'dissolve' | 'gone' | 'disguised'
 
 export const runtime = {
   // Written by the input modules, consumed by PlayerController each frame.
@@ -65,17 +66,20 @@ export interface GhostRuntime {
   speed: number // m/s
   state: WispState
   exposure: number // 0..1
+  // Whether a shot taken now would count: false while the Mimic is an ordinary
+  // object, and for the Ink Ghost while no UV is on it.
+  photographable: boolean
 }
 
 export function createGhostRuntime(id: string): GhostRuntime {
-  return { id, object: null, position: new Vector3(), speed: 0, state: 'gone', exposure: 0 }
+  return { id, object: null, position: new Vector3(), speed: 0, state: 'gone', exposure: 0, photographable: true }
 }
 
 // The ghosts that can still be seen and photographed.
 export function liveGhosts(): GhostRuntime[] {
   const live: GhostRuntime[] = []
   for (const g of runtime.ghosts.values())
-    if (g.object && g.state !== 'gone' && g.state !== 'dissolve') live.push(g)
+    if (g.object && g.photographable && g.state !== 'gone' && g.state !== 'dissolve') live.push(g)
   return live
 }
 

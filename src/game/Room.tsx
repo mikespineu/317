@@ -7,6 +7,7 @@ import { Intro } from './intro/Intro'
 import { Candle } from './light/Candle'
 import { Flashlight } from './light/Flashlight'
 import { PaintingReveal } from './light/PaintingReveal'
+import { UvInk } from './light/UvInk'
 import { Mirror } from './mirror/Mirror'
 import { Props } from './props/Props'
 import { PlayerController } from './player/PlayerController'
@@ -29,6 +30,7 @@ export function Room({ def }: { def: RoomDef }) {
         <Flashlight />
         <Candle />
         <PaintingReveal />
+        <UvInk />
         <Interaction />
         <Props />
         <Mirror />

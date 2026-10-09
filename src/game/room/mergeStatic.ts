@@ -1,7 +1,7 @@
 import { BufferAttribute, BufferGeometry, Group, Matrix4, Mesh, MeshBasicMaterial } from 'three/webgpu'
 import type { InterleavedBufferAttribute, Material, Object3D, Side } from 'three/webgpu'
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js'
-import { MIRROR_ONLY, requiredNodes } from './bindNodes'
+import { MIRROR_ONLY, UV_ONLY, requiredNodes } from './bindNodes'
 import type { BoundRoom } from './bindNodes'
 import type { RoomDef } from './roomDef'
 
@@ -154,6 +154,7 @@ export function mergeStatic(room: BoundRoom, def: RoomDef) {
       (keep.has(node.name) ||
         KEEP.some((pattern) => pattern.test(node.name)) ||
         node.name.startsWith(MIRROR_ONLY) ||
+        node.name.startsWith(UV_ONLY) ||
         !node.visible ||
         hasData(node) ||
         // A group's render order applies to everything under it.

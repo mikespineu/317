@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { AboutOverlay } from '#/components/AboutOverlay'
 import { tr, useT } from '#/i18n'
 import { carryBattery, imageDataUrl, recordRoom } from '#/lib/progress'
+import { check } from '../puzzle/chain'
 import { useRoomDef } from '../room/RoomContext'
 import { runtime } from '../runtime'
 import { useGame } from '../store'
@@ -41,6 +42,10 @@ export function CompleteCard() {
   const shots = ghosts.map((g) => photos.find((p) => p.ghostId === g.id) ?? null)
   const best = photos.reduce<Photo | null>((top, p) => (!top || p.score > top.score ? p : top), null)
 
+  // Secrets are counted by what the player holds, leads by what they have seen.
+  const found = (def.secrets?.found ?? []).filter((token) => check(token)).length
+  const leads = (def.leads ?? []).filter((lead) => check(lead.when))
+
   const par = def.parSeconds
   const earned: [label: string, on: boolean][] = [
     [t('complete.star.exit'), true],
@@ -64,7 +69,9 @@ export function CompleteCard() {
         score: p.score,
         image: await imageDataUrl(p.url),
       })),
-    ).then((kept) => recordRoom(def.id, { seconds, stars, photos: kept }))
+    ).then((kept) =>
+      recordRoom(def.id, { seconds, stars, photos: kept, leads: leads.map((lead) => lead.when) }),
+    )
   }, [])
 
   return (
@@ -123,11 +130,18 @@ export function CompleteCard() {
             </figure>
           )
         )}
+        {leads.length > 0 && (
+          <ul className="complete-leads">
+            {leads.map((lead) => (
+              <li key={lead.when}>{tr(lead.text)}</li>
+            ))}
+          </ul>
+        )}
         {(def.secrets || next) && (
           <p className="complete-more">
             {def.secrets && (
               <span className="complete-secrets">
-                {t('complete.secrets', { total: def.secrets.total })}
+                {t('complete.secrets', { found, total: def.secrets.total })}
                 {def.secrets.note && <em> — {tr(def.secrets.note)}</em>}
               </span>
             )}
