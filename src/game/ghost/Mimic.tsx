@@ -18,13 +18,14 @@ import { createMimicMaterial } from './mimicMaterial'
 import type { MimicMaterial } from './mimicMaterial'
 
 const LIGHT_COLOR = 0x8fffd6
+const LIGHT_TEST_LIFT = 0.03 // m above the object's top face, inside the 5 cm blocked() ignores
 const REVEAL_LIFT = 0.17 // m from a spot's base to the middle of the true shape
 const X = new Vector3(1, 0, 0)
 const _tilt = new Quaternion()
 
 interface Spot {
   base: Vector3 // the spawn: where the true shape stands
-  centre: Vector3 // the middle of the decoy, to test the light on
+  centre: Vector3 // just above the decoy's top face, to test the light on
   decoy: Object3D
   disguise: Object3D
   at: Vector3 // the decoy's position and turn, which the disguise copies
@@ -59,9 +60,15 @@ export function Mimic({ ghost: def }: { ghost: GhostDef }) {
       const disguise = room.nodes.get(s.disguise)
       if (!spawn || !decoy || !disguise) return
       decoy.updateWorldMatrix(true, false)
+      // The light is tested just above the object's top face. Its own meshes are
+      // occluders (a ray ignores .visible), and a point inside a 5 cm book lies
+      // behind the top face for any ray that comes in at a slant.
+      const box = new Box3().setFromObject(decoy)
+      const centre = box.getCenter(new Vector3())
+      centre.y = box.max.y + LIGHT_TEST_LIFT
       spots.push({
         base: spawn.clone(),
-        centre: new Box3().setFromObject(decoy).getCenter(new Vector3()),
+        centre,
         decoy,
         disguise,
         at: decoy.getWorldPosition(new Vector3()),

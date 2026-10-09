@@ -74,7 +74,7 @@ export function isRevealed(brain: MimicBrain) {
 export interface MimicContext {
   beam: Beam
   occluders: Mesh[]
-  centres: readonly Vector3[] // the middle of each spot's object, to test the light on
+  centres: readonly Vector3[] // a point just above each spot's object, to test the light on
 }
 
 export function stepMimic(brain: MimicBrain, dt: number, ctx: MimicContext) {
