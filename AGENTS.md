@@ -19,7 +19,6 @@ npm run dev              # dev server on http://localhost:9000 (--strictPort: fa
 npm run assets           # copy blender/export/*.glb to public/models/ (runs before dev and build)
 npm run typecheck        # tsc --noEmit
 npm run build            # production build (Nitro, Vercel preset)
-npm run generate-routes  # regenerate src/routeTree.gen.ts without running the dev server
 ```
 
 There is no test runner and no linter. `tsconfig.json` has `noUnusedLocals` and `noUnusedParameters` on, so `typecheck` fails on unused code.
