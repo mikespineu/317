@@ -147,7 +147,7 @@ const GROUPS: [name: string, match: RegExp][] = [
   ['camera', /^(photo|camera|aimAssist|shutter)/],
   ['mirror', /^mirror/],
   ['props', /^(throw|prop|hold)/],
-  ['post', /^(bloom|vignette|grain|grade|ink|night|band|indigo|paper)/],
+  ['post', /^(bloom|vignette|grain|grade|ink|night|band|indigo|paper|ascii)/],
   ['audio', /(Volume|Gain)$|^(creak|audio|master|keyWhisper|clockTick|wind)/],
   ['atmosphere', /^(moon|ambient|fog|background)/],
   ['battery', /Drain|Charge|^(level|swap|emergency|modeSwitch|lowTick|battery)/],

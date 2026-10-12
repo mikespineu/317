@@ -1,6 +1,7 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link, createFileRoute } from '@tanstack/react-router'
 import { AboutOverlay } from '#/components/AboutOverlay'
+import { RENDER_STYLES, getRenderStyle, setRenderStyle, type RenderStyle } from '#/lib/renderStyle'
 import { LANGS, LANG_NAMES, setLang, useLang, useT } from '#/i18n'
 
 export const Route = createFileRoute('/')({ component: TitleScreen })
@@ -9,6 +10,13 @@ function TitleScreen() {
   const t = useT()
   const lang = useLang()
   const [about, setAbout] = useState(false)
+  // Read after mount: the server render cannot see localStorage.
+  const [style, setStyle] = useState<RenderStyle>('print')
+  useEffect(() => setStyle(getRenderStyle()), [])
+  const pickStyle = (next: RenderStyle) => {
+    setStyle(next)
+    setRenderStyle(next)
+  }
   return (
     <main className="relative grid min-h-dvh place-content-center justify-items-center gap-6 overflow-x-clip bg-indigo p-4 text-center">
       <div
@@ -63,6 +71,23 @@ function TitleScreen() {
           </li>
         </ol>
       </section>
+      <div role="group" aria-label={t('title.style')} className="relative flex border-2 border-ink shadow-[0.2em_0.2em_0_var(--color-ink)]">
+        {RENDER_STYLES.map((code) => (
+          <button
+            key={code}
+            type="button"
+            aria-pressed={code === style}
+            onClick={() => pickStyle(code)}
+            className={`cursor-pointer px-4 py-1.5 font-display text-sm tracking-[0.15em] uppercase not-first:border-l-2 not-first:border-ink ${
+              code === style
+                ? 'bg-vermilion text-paper'
+                : 'bg-paper bg-[image:var(--paper-grain)] text-ink hover:bg-saffron'
+            }`}
+          >
+            {t(`style.${code}`)}
+          </button>
+        ))}
+      </div>
       <Link
         to="/play"
         className="relative mt-4 border-2 border-ink bg-vermilion px-10 py-3 font-display text-lg tracking-[0.2em] text-paper uppercase no-underline shadow-[0.2em_0.2em_0_var(--color-ink)] transition-transform hover:bg-saffron hover:text-ink active:translate-x-[0.15em] active:translate-y-[0.15em] active:shadow-[0.05em_0.05em_0_var(--color-ink)]"
