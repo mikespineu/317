@@ -9,7 +9,6 @@
     "assets": "node scripts/copy-assets.mjs",
     "predev": "npm run assets",
     "dev": "vite dev --port 9000 --strictPort",
-    "generate-routes": "tsr generate",
     "prebuild": "npm run assets",
     "build": "vite build",
     "preview": "vite preview",
@@ -31,7 +30,6 @@
   },
   "devDependencies": {
     "@tailwindcss/vite": "^4.3.3",
-    "@tanstack/router-cli": "^1.132.0",
     "@types/node": "^22.10.2",
     "@types/react": "^19.2.0",
     "@types/react-dom": "^19.2.0",

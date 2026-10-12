@@ -47,7 +47,6 @@ npm run dev              # http://localhost:9000 (fails if the port is taken)
 npm run assets           # copy blender/export/*.glb to public/models/ (runs before dev and build)
 npm run typecheck
 npm run build            # production build (Nitro, Vercel preset)
-npm run generate-routes  # regenerate src/routeTree.gen.ts
 ```
 
 Add `?debug` to a play URL for the debug panel (room switcher, chain skips, tuning, overlays). Copy `.env.example` to `.env` once a Supabase project exists; the rooms run without it.
